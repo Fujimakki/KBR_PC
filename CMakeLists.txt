@@ -1,22 +1,32 @@
 cmake_minimum_required(VERSION 3.19)
 project(KBR_PC LANGUAGES CXX)
 
-find_package(Qt6 6.5 REQUIRED COMPONENTS Core Widgets)
+find_package(Qt6 6.5 REQUIRED COMPONENTS Core Widgets SerialPort)
 
 qt_standard_project_setup()
 
+file(GLOB_RECURSE srcs
+    src/*.cpp
+    src/*.hpp
+    src/*.h
+)
+
 qt_add_executable(KBR_PC
     WIN32 MACOSX_BUNDLE
-    main.cpp
-    mainwindow.cpp
-    mainwindow.h
-    mainwindow.ui
+    ${srcs}
 )
+
+file(GLOB_RECURSE guis
+    gui/*.ui
+)
+
+qt_add_ui(KBR_PC SOURCES ${guis})
 
 target_link_libraries(KBR_PC
     PRIVATE
         Qt::Core
         Qt::Widgets
+        Qt6::SerialPort
 )
 
 include(GNUInstallDirs)
