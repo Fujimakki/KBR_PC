@@ -2,7 +2,8 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
-#include <QSerialPort>
+#include <QThread>
+#include "serialworker.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -20,6 +21,8 @@ public:
 
 private:
     Ui::MainWindow *ui;
-    QSerialPort *serPort;
+
+    QThread *sThread;
+    SerialWorker *sWorker;
 };
 #endif // MAINWINDOW_H

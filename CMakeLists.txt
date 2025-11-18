@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.19)
 project(KBR_PC LANGUAGES CXX)
 
 find_package(Qt6 6.5 REQUIRED COMPONENTS Core Widgets SerialPort)
+find_package(Qt6 REQUIRED COMPONENTS Core)
+find_package(ZLIB REQUIRED)
 
 qt_standard_project_setup()
 
@@ -16,6 +18,8 @@ qt_add_executable(KBR_PC
     ${srcs}
 )
 
+target_include_directories(KBR_PC PUBLIC src/)
+
 file(GLOB_RECURSE guis
     gui/*.ui
 )
@@ -27,7 +31,9 @@ target_link_libraries(KBR_PC
         Qt::Core
         Qt::Widgets
         Qt6::SerialPort
+        ZLIB::ZLIB
 )
+target_link_libraries(KBR_PC PRIVATE Qt6::Core)
 
 include(GNUInstallDirs)
 
