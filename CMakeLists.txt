@@ -1,8 +1,11 @@
 cmake_minimum_required(VERSION 3.19)
 project(KBR_PC LANGUAGES CXX)
 
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
 find_package(Qt6 6.5 REQUIRED COMPONENTS Core Widgets SerialPort)
-find_package(Qt6 REQUIRED COMPONENTS Core)
+find_package(Qt6 REQUIRED COMPONENTS Core Charts)
 find_package(ZLIB REQUIRED)
 
 qt_standard_project_setup()
@@ -31,6 +34,7 @@ target_link_libraries(KBR_PC
         Qt::Core
         Qt::Widgets
         Qt6::SerialPort
+        Qt6::Charts
         ZLIB::ZLIB
 )
 target_link_libraries(KBR_PC PRIVATE Qt6::Core)

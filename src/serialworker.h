@@ -8,6 +8,9 @@
 class SerialWorker : public QObject
 {
     Q_OBJECT
+
+    friend class TestSerialWorker;
+
 public:
     explicit SerialWorker(QObject *parent = nullptr);
 
@@ -25,16 +28,16 @@ private slots:
     void handleSerialError(QSerialPort::SerialPortError error);
 
 private:
-    QSerialPort *port;
+    QSerialPort *port = nullptr;
     QByteArray rxBuffer;
 
     static constexpr quint32 PORT_BAUD_RATE = 2250000;    // The value is configured for NUCLEO-F446RE
     static constexpr quint16 PORT_BUF_SIZE = 8192;    // If 8192 bytes is not enough, then 65536 bytes may be used
 
     static constexpr quint16 RX_PACKET_SIZE = 2054;
-    const QByteArray PACKET_HEADER = {0xAA, 0x55};
+    const QByteArray PACKET_HEADER = QByteArray::fromHex("AA55");
+    static constexpr quint16 RX_PAYLOAD_SIZE = 2048;
     static constexpr quint8 PACKET_CRC_SIZE = 4;
-    static constexpr quint16 RX_PAYLOAD_SIZE = RX_PACKET_SIZE - PACKET_CRC_SIZE - PACKET_HEADER.size();
 
     void processBuffer();
     quint32 parseCrc(const QByteArray &crc);

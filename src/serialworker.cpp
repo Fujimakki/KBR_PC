@@ -1,5 +1,7 @@
 #include "serialworker.h"
 #include <zlib.h>
+#include <QDebug>
+#include <QThread>
 
 SerialWorker::SerialWorker(QObject *parent)
     : QObject{parent}
@@ -44,7 +46,8 @@ void SerialWorker::doDisconnect()
     if(port)
     {
         port->close();
-        delete port;
+        port->deleteLater();
+        port = nullptr;
     }
 }
 
@@ -57,7 +60,7 @@ void SerialWorker::onReadyRead()
 void SerialWorker::handleSerialError(QSerialPort::SerialPortError error)
 {
     if(error != QSerialPort::NoError) {
-        emit portError(m_serialPort->errorString());
+        emit portError(port->errorString());
     }
 }
 
@@ -65,7 +68,7 @@ void SerialWorker::processBuffer()
 {
     while(rxBuffer.size() >= RX_PACKET_SIZE)
     {
-        quint16 startIndex = rxBuffer.indexOf(PACKET_HEADER);
+        auto startIndex = rxBuffer.indexOf(PACKET_HEADER);
         if(startIndex == -1)
         {
             rxBuffer.clear();
@@ -77,7 +80,7 @@ void SerialWorker::processBuffer()
             rxBuffer = rxBuffer.mid(startIndex);
         }
 
-        if(rxBuffer < RX_PACKET_SIZE)
+        if(rxBuffer.size() < RX_PACKET_SIZE)
         {
             return;
         }
@@ -100,7 +103,7 @@ quint32 SerialWorker::parseCrc(const QByteArray &crc)
     quint32 crcValue = 0;
     for(quint8 i = 0; i < PACKET_CRC_SIZE; i++)
     {
-        crcValue |= (static_cast<quint32>crc[i]) << (i << 3);
+        crcValue |= (static_cast<quint32>(static_cast<quint8>(crc[i]))) << (i << 3);
     }
 
     return crcValue;
@@ -111,7 +114,7 @@ quint32 SerialWorker::calcCrc(const QByteArray &payload)
     uLong crcValue = crc32(0L, Z_NULL, 0); // Initialize CRC
 
     // Calculate
-    crcValue = crc32(crc, reinterpret_cast<const Bytef*>(data.constData()), data.size());
+    crcValue = crc32(crcValue, reinterpret_cast<const Bytef*>(payload.constData()), payload.size());
 
     return static_cast<quint32>(crcValue);
 }
