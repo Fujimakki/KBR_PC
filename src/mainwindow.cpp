@@ -7,7 +7,6 @@
 #include <QChartView>
 #include <QSerialPortInfo>
 #include <array>
-#include <bit>
 #include <cstring>
 
 MainWindow::MainWindow(QWidget *parent)
