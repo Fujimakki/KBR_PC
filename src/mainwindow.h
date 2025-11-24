@@ -3,10 +3,11 @@
 
 #include <QMainWindow>
 #include <QThread>
-#include <QBarSeries>
+#include <QLineSeries>
 #include <QChart>
 #include <QTimer>
 #include <QElapsedTimer>
+#include <vector>
 
 #include "serialworker.h"
 
@@ -30,34 +31,42 @@ signals:
     void connectToPort(const QString &portName);
 
 private slots:
-    void onDataReceived(const QByteArray &payload);
+    void fftDataReceived(const QByteArray &barr_payload);
+    void rawDataReceived(const QByteArray &barr_payload);
     void onCrcError();
     void onPortError(const QString &error);
     void refreshPortList();
-    void moveDataWindow(int value);
 
 private:
+    enum PayloadType
+    {
+        Raw,
+        Fft
+    };
+
     Ui::MainWindow *ui;
 
     QThread *sThread = nullptr;
     SerialWorker *sWorker = nullptr;
 
     QTimer *portCmbBTimer = nullptr;
-    QElapsedTimer renderTimer;
+    QElapsedTimer rawRenderTimer;
 
-    QBarSeries *barSeries = nullptr;
+    QLineSeries *waveform = nullptr;
     QChart *chart = nullptr;
 
-    quint16 dataWindowStart = 0;
-    bool dataWindowMoved = false;
+    std::vector<qreal> rawData;
+    std::vector<qreal> fftData;
 
     static constexpr quint16 PORT_CMBB_UPD_TIMEOUT = 5000;    // Time in mseconds
     static constexpr quint16 FRAME_UPDATE_TIMEOUT = 33;    // Time in mseconds
-    static constexpr quint16 FLOAT_PAYLOAD_SIZE = 512;
-    static constexpr quint8 DATA_WINDOW_SIZE = 16;
-    static constexpr qreal ADC_SAMPLE_RATE_HZ = 96153.846;
 
-    void setupGraph(const std::array<float,FLOAT_PAYLOAD_SIZE> &data);
+    static constexpr quint16 RAW_PAYLOAD_FLOATS = 4096;
+    static constexpr quint16 FFT_PAYLOAD_FLOATS = 2048;
+
+    static constexpr qreal ADC_SAMPLE_RATE_HZ = 2.4e6;
+
+    void setupGraph(PayloadType type);
     void configChart();
     void configChartView();
 };

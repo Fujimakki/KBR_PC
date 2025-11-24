@@ -15,15 +15,18 @@ MainWindow::MainWindow(QWidget *parent)
     , sThread(new QThread(this))
     , sWorker(new SerialWorker)
     , portCmbBTimer(new QTimer(this))
-    , barSeries(new QBarSeries(this))
+    , waveform(new QLineSeries(this))
     , chart(new QChart(nullptr))
 {
     ui->setupUi(this);
 
-    ui->dataWindowScrollBar->setMaximum(FLOAT_PAYLOAD_SIZE - DATA_WINDOW_SIZE);
-    connect(ui->dataWindowScrollBar, &QScrollBar::valueChanged, this, &MainWindow::moveDataWindow);
+    rawData.reserve(RAW_PAYLOAD_FLOATS);
+    fftData.reserve(FFT_PAYLOAD_FLOATS);
 
-    renderTimer.start();
+#ifdef FPS_LOCK
+    rawRenderTimer.start();
+    fftRenderTimer.start();
+#endif // FPS_LOCK
 
     sWorker->moveToThread(sThread);
     portCmbBTimer->setSingleShot(true);
@@ -31,6 +34,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     configChart();
     configChartView();
+    ui->spectrumGraph->setSampleRate(ADC_SAMPLE_RATE_HZ);
     refreshPortList();
 
     connect(this, &MainWindow::connectToPort, sWorker, &SerialWorker::doConnect);
@@ -39,7 +43,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     connect(sWorker, &SerialWorker::crcError, this, &MainWindow::onCrcError);
     connect(sWorker, &SerialWorker::portError, this, &MainWindow::onPortError);
-    connect(sWorker, &SerialWorker::fftDataParsed, this, &MainWindow::onDataReceived);
+    connect(sWorker, &SerialWorker::fftDataParsed, this, &MainWindow::fftDataReceived);
 
     connect(sThread, &QThread::finished, sWorker, &QObject::deleteLater);
 
@@ -56,26 +60,40 @@ MainWindow::~MainWindow()
     }
 }
 
-void MainWindow::onDataReceived(const QByteArray &barr_payload)
+void MainWindow::fftDataReceived(const QByteArray &barr_payload)
 {
+#ifdef FPS_LOCK
     if(renderTimer.elapsed() < FRAME_UPDATE_TIMEOUT)
     {
         return;
     }
     renderTimer.restart();
+#endif // FPS_LOCK
 
-    const char* rawData = barr_payload.constData();
+    const char* payload = barr_payload.constData();
 
-    std::array<float, FLOAT_PAYLOAD_SIZE> data;
-
-    for(quint16 i = 0; i < FLOAT_PAYLOAD_SIZE; i++)
+    for(quint16 i = 0; i < FFT_PAYLOAD_FLOATS; i++)
     {
         float value;
-        memcpy(&value, &rawData[i * sizeof(float)], sizeof(float));
-        data[i] = value;
+        memcpy(&value, &payload[i * sizeof(float)], sizeof(float));
+        fftData[i] = value;
     }
 
-    setupGraph(data);
+    setupGraph(PayloadType::Fft);
+}
+
+void MainWindow::rawDataReceived(const QByteArray &barr_payload)
+{
+    const char* payload = barr_payload.constData();
+
+    for(quint16 i = 0; i < FFT_PAYLOAD_FLOATS; i++)
+    {
+        float value;
+        memcpy(&value, &payload[i * sizeof(float)], sizeof(float));
+        rawData[i] = value;
+    }
+
+    setupGraph(PayloadType::Raw);
 }
 
 void MainWindow::onCrcError()
@@ -88,56 +106,47 @@ void MainWindow::onPortError(const QString &error)
     QMessageBox::critical(this, "Serial Port Error", error);
 }
 
-void MainWindow::setupGraph(const std::array<float,FLOAT_PAYLOAD_SIZE> &data)
+void MainWindow::setupGraph(PayloadType type)
 {
-    QBarSet *set = barSeries->barSets().at(0);
-    for(int i = 0; i < DATA_WINDOW_SIZE; i++)
+    switch(type)
     {
-        quint16 elem_index = i + dataWindowStart;
-        set->replace(i, data[elem_index]);
-    }
-
-    if(dataWindowMoved)
-    {
-        auto *axisX = qobject_cast<QBarCategoryAxis*>(chart->axes(Qt::Horizontal).at(0));
-        axisX->setRange(QString::number(dataWindowStart), QString::number(dataWindowStart + DATA_WINDOW_SIZE));
-        dataWindowMoved = false;
+    case PayloadType::Raw:
+        for(quint16 i = 0; i < 1000; i++)
+        {
+            waveform->append(qreal(i), rawData[i]);
+            if(waveform->count() > 1000)
+            {
+                waveform->remove(0);
+            }
+        }
+        break;
+    case PayloadType::Fft:
+        ui->spectrumGraph->setAmplitudes(fftData);
+        break;
+    default:
+        break;
     }
 }
 
 void MainWindow::configChart()
 {
     chart->setTheme(QChart::ChartThemeDark);
-
-    QBarSet *set = new QBarSet("Magnitudes");
-    for(int i = dataWindowStart; i < dataWindowStart + DATA_WINDOW_SIZE; i++)
-    {
-        *set << 1.0;
-    }
-    barSeries->append(set);
-    chart->addSeries(barSeries);
+    chart->addSeries(waveform);
 
     QValueAxis *axisY = new QValueAxis();
     axisY->setRange(0, 3.3);
-
     chart->addAxis(axisY, Qt::AlignLeft);
-    barSeries->attachAxis(axisY);
 
-    QBarCategoryAxis *axisX = new QBarCategoryAxis();
-    QStringList categories;
-    for(int i = 0; i < FLOAT_PAYLOAD_SIZE; i++) { categories << QString::number(i); }
-    axisX->append(categories);
-    axisX->setRange(QString::number(dataWindowStart), QString::number(dataWindowStart + DATA_WINDOW_SIZE));
-
+    QValueAxis *axisX = new QValueAxis();
+    axisY->setRange(0, 3.3);
     chart->addAxis(axisX, Qt::AlignBottom);
-    barSeries->attachAxis(axisX);
 
 }
 
 void MainWindow::configChartView()
 {
-    ui->chartView->setChart(chart);
-    ui->chartView->setRenderHint(QPainter::Antialiasing);
+    ui->waveformGraph->setChart(chart);
+    ui->waveformGraph->setRenderHint(QPainter::Antialiasing);
 }
 
 void MainWindow::refreshPortList()
@@ -163,10 +172,4 @@ void MainWindow::refreshPortList()
     }
 
     portCmbBTimer->start(PORT_CMBB_UPD_TIMEOUT);
-}
-
-void MainWindow::moveDataWindow(int value)
-{
-    dataWindowStart = value;
-    dataWindowMoved = true;
 }

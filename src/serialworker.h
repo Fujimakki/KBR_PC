@@ -39,11 +39,11 @@ private:
     static constexpr quint8 PACKET_HEADER_BYTES = 2;
     static constexpr quint8 PACKET_CRC_BYTES = 4;
 
-    static constexpr quint16 RX_RAW_PAYLOAD_BYTES = 8192;
-    static constexpr quint16 RX_RAW_PACKET_BYTES = 8198;
+    static constexpr quint16 RX_RAW_PAYLOAD_BYTES = 16384;
+    static constexpr quint16 RX_RAW_PACKET_BYTES = 16390;
 
-    static constexpr quint16 RX_FFT_PAYLOAD_BYTES = 16384;
-    static constexpr quint16 RX_FFT_PACKET_BYTES = 16390;
+    static constexpr quint16 RX_FFT_PAYLOAD_BYTES = 8192;
+    static constexpr quint16 RX_FFT_PACKET_BYTES = 8198;
 
     const QByteArray FFT_PACKET_HEADER = QByteArray::fromHex("AA52");
     const QByteArray RAW_PACKET_HEADER = QByteArray::fromHex("AA51");
