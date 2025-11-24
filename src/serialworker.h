@@ -15,9 +15,11 @@ public:
     explicit SerialWorker(QObject *parent = nullptr);
 
 signals:
-    void packetParsed(const QByteArray &payload);
     void crcError();
     void portError(const QString &error);
+
+    void rawDataParsed(const QByteArray &payload);
+    void fftDataParsed(const QByteArray &payload);
 
 public slots:
     void doConnect(const QString &portName);
@@ -31,13 +33,20 @@ private:
     QSerialPort *port = nullptr;
     QByteArray rxBuffer;
 
-    static constexpr quint32 PORT_BAUD_RATE = 2250000;    // The value is configured for NUCLEO-F446RE
-    static constexpr quint16 PORT_BUF_SIZE = 8192;    // If 8192 bytes is not enough, then 65536 bytes may be used
+    static constexpr quint32 PORT_BAUD_RATE = 2250000;    // The value is set on NUCLEO-F446RE
+    static constexpr quint16 PORT_BUF_SIZE = 65535;
 
-    static constexpr quint16 RX_PACKET_SIZE = 2054;
-    const QByteArray PACKET_HEADER = QByteArray::fromHex("AA55");
-    static constexpr quint16 RX_PAYLOAD_SIZE = 2048;
-    static constexpr quint8 PACKET_CRC_SIZE = 4;
+    static constexpr quint8 PACKET_HEADER_BYTES = 2;
+    static constexpr quint8 PACKET_CRC_BYTES = 4;
+
+    static constexpr quint16 RX_RAW_PAYLOAD_BYTES = 8192;
+    static constexpr quint16 RX_RAW_PACKET_BYTES = 8198;
+
+    static constexpr quint16 RX_FFT_PAYLOAD_BYTES = 16384;
+    static constexpr quint16 RX_FFT_PACKET_BYTES = 16390;
+
+    const QByteArray FFT_PACKET_HEADER = QByteArray::fromHex("AA52");
+    const QByteArray RAW_PACKET_HEADER = QByteArray::fromHex("AA51");
 
     void processBuffer();
     quint32 parseCrc(const QByteArray &crc);

@@ -39,7 +39,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     connect(sWorker, &SerialWorker::crcError, this, &MainWindow::onCrcError);
     connect(sWorker, &SerialWorker::portError, this, &MainWindow::onPortError);
-    connect(sWorker, &SerialWorker::packetParsed, this, &MainWindow::onDataReceived);
+    connect(sWorker, &SerialWorker::fftDataParsed, this, &MainWindow::onDataReceived);
 
     connect(sThread, &QThread::finished, sWorker, &QObject::deleteLater);
 

@@ -66,33 +66,57 @@ void SerialWorker::handleSerialError(QSerialPort::SerialPortError error)
 
 void SerialWorker::processBuffer()
 {
-    while(rxBuffer.size() >= RX_PACKET_SIZE)
+    while(true)
     {
-        auto startIndex = rxBuffer.indexOf(PACKET_HEADER);
-        if(startIndex == -1)
+        auto rawIndex = rxBuffer.indexOf(RAW_PACKET_HEADER);
+        auto fftIndex = rxBuffer.indexOf(FFT_PACKET_HEADER);
+        if(rawIndex == -1 && fftIndex == -1)
         {
             rxBuffer.clear();
             return;
         }
 
-        if(startIndex > 0)
+        qsizetype startIndex = -1;
+        bool isRaw = false;
+
+        if( rawIndex != -1 && (fftIndex == -1 || rawIndex < fftIndex) )
         {
-            rxBuffer = rxBuffer.mid(startIndex);
+            startIndex = rawIndex;
+            isRaw = true;
+        }
+        else if( fftIndex != -1 && (rawIndex == -1 || fftIndex < rawIndex) )
+        {
+            startIndex = fftIndex;
         }
 
-        if(rxBuffer.size() < RX_PACKET_SIZE)
+        if(startIndex > 0)
         {
+            rxBuffer.remove(0, startIndex);
+        }
+
+        quint16 packetSize = isRaw ? RX_RAW_PACKET_BYTES : RX_FFT_PACKET_BYTES;
+
+        if (rxBuffer.size() < packetSize) {
             return;
         }
 
-        QByteArray fullPacket = rxBuffer.left(RX_PACKET_SIZE);
-        rxBuffer.remove(0, RX_PACKET_SIZE);
-        QByteArray payload = fullPacket.mid(PACKET_HEADER.size(), RX_PAYLOAD_SIZE);
-        QByteArray crc = fullPacket.right(PACKET_CRC_SIZE);
+        static QByteArray payload = rxBuffer.mid(PACKET_HEADER_BYTES, RX_FFT_PAYLOAD_BYTES);
+        QByteArray crc = rxBuffer.right(PACKET_CRC_BYTES);
+        rxBuffer.remove(0, RX_FFT_PACKET_BYTES);
 
-        if(parseCrc(crc) == calcCrc(payload)) {
-            emit packetParsed(payload);
-        } else {
+        if(parseCrc(crc) == calcCrc(payload))
+        {
+            if(isRaw)
+            {
+                emit rawDataParsed(payload);
+            }
+            else
+            {
+                emit fftDataParsed(payload);
+            }
+        }
+        else
+        {
             emit crcError();
         }
     }
@@ -101,7 +125,7 @@ void SerialWorker::processBuffer()
 quint32 SerialWorker::parseCrc(const QByteArray &crc)
 {
     quint32 crcValue = 0;
-    for(quint8 i = 0; i < PACKET_CRC_SIZE; i++)
+    for(quint8 i = 0; i < PACKET_CRC_BYTES; i++)
     {
         crcValue |= (static_cast<quint32>(static_cast<quint8>(crc[i]))) << (i << 3);
     }
