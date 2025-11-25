@@ -20,7 +20,9 @@ MainWindow::MainWindow(QWidget *parent)
 {
     ui->setupUi(this);
 
+    rawData.resize(RAW_PAYLOAD_FLOATS);
     rawData.reserve(RAW_PAYLOAD_FLOATS);
+    fftData.resize(FFT_PAYLOAD_FLOATS);
     fftData.reserve(FFT_PAYLOAD_FLOATS);
 
 #ifdef FPS_LOCK
@@ -43,6 +45,8 @@ MainWindow::MainWindow(QWidget *parent)
 
     connect(sWorker, &SerialWorker::crcError, this, &MainWindow::onCrcError);
     connect(sWorker, &SerialWorker::portError, this, &MainWindow::onPortError);
+
+    connect(sWorker, &SerialWorker::rawDataParsed, this, &MainWindow::rawDataReceived);
     connect(sWorker, &SerialWorker::fftDataParsed, this, &MainWindow::fftDataReceived);
 
     connect(sThread, &QThread::finished, sWorker, &QObject::deleteLater);
@@ -63,11 +67,11 @@ MainWindow::~MainWindow()
 void MainWindow::fftDataReceived(const QByteArray &barr_payload)
 {
 #ifdef FPS_LOCK
-    if(renderTimer.elapsed() < FRAME_UPDATE_TIMEOUT)
+    if(fftRenderTimer.elapsed() < FRAME_UPDATE_TIMEOUT)
     {
         return;
     }
-    renderTimer.restart();
+    fftRenderTimer.restart();
 #endif // FPS_LOCK
 
     const char* payload = barr_payload.constData();
@@ -84,9 +88,17 @@ void MainWindow::fftDataReceived(const QByteArray &barr_payload)
 
 void MainWindow::rawDataReceived(const QByteArray &barr_payload)
 {
+#ifdef FPS_LOCK
+    if(rawRenderTimer.elapsed() < FRAME_UPDATE_TIMEOUT)
+    {
+        return;
+    }
+    rawRenderTimer.restart();
+#endif // FPS_LOCK
+
     const char* payload = barr_payload.constData();
 
-    for(quint16 i = 0; i < FFT_PAYLOAD_FLOATS; i++)
+    for(quint16 i = 0; i < RAW_PAYLOAD_FLOATS; i++)
     {
         float value;
         memcpy(&value, &payload[i * sizeof(float)], sizeof(float));
@@ -110,21 +122,25 @@ void MainWindow::setupGraph(PayloadType type)
 {
     switch(type)
     {
-    case PayloadType::Raw:
-        for(quint16 i = 0; i < 1000; i++)
+        case PayloadType::Raw:
         {
-            waveform->append(qreal(i), rawData[i]);
-            if(waveform->count() > 1000)
-            {
-                waveform->remove(0);
+            QList<QPointF> points;
+            points.reserve(1000);
+            for(quint16 i = 0; i < 1000; i++) {
+                points.append(QPointF(i, rawData[i]));
             }
+            waveform->replace(points);
+            break;
         }
-        break;
-    case PayloadType::Fft:
-        ui->spectrumGraph->setAmplitudes(fftData);
-        break;
-    default:
-        break;
+        case PayloadType::Fft:
+        {
+            ui->spectrumGraph->setAmplitudes(fftData);
+            break;
+        }
+        default:
+        {
+            break;
+        }
     }
 }
 
@@ -138,7 +154,7 @@ void MainWindow::configChart()
     chart->addAxis(axisY, Qt::AlignLeft);
 
     QValueAxis *axisX = new QValueAxis();
-    axisY->setRange(0, 3.3);
+    axisX->setRange(0, 1000);
     chart->addAxis(axisX, Qt::AlignBottom);
 
 }

@@ -21,13 +21,15 @@ void SpectrumGrapher::setAmplitudes(const std::vector<qreal> &amplitudes)
         return;
     }
 
+    binCount = amplitudes.size();
+
     lines.clear();
 
     const qreal w = width();
     const qreal h = height();
-    const qreal xStep = w / amplitudes.size();
+    const qreal xStep = w / binCount;
 
-    for (size_t i = 0; i < amplitudes.size(); ++i)
+    for (size_t i = 0; i < binCount; ++i)
     {
         qreal x = i * xStep;
         qreal harmonicAmp = amplitudes[i] / Y_AXES;
@@ -56,7 +58,10 @@ void SpectrumGrapher::paintEvent(QPaintEvent *)
 
 void SpectrumGrapher::drawGrid(QPainter *painter)
 {
-    if (maxFreq <= 0 || binCount == 0) return;
+    if (maxFreq <= 0 || binCount == 0)
+    {
+        return;
+    }
 
     painter->setPen(QPen(Qt::gray, 1, Qt::DotLine));
 

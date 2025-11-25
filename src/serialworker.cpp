@@ -14,7 +14,7 @@ void SerialWorker::doConnect(const QString &portName)
     if(port)
     {
         port->close();
-        delete port;
+        port->deleteLater();
     }
     port = new QSerialPort(this);
 
@@ -95,14 +95,15 @@ void SerialWorker::processBuffer()
         }
 
         quint16 packetSize = isRaw ? RX_RAW_PACKET_BYTES : RX_FFT_PACKET_BYTES;
+        quint16 payloadSize = isRaw ? RX_RAW_PAYLOAD_BYTES : RX_FFT_PAYLOAD_BYTES;
 
         if (rxBuffer.size() < packetSize) {
             return;
         }
 
-        static QByteArray payload = rxBuffer.mid(PACKET_HEADER_BYTES, RX_FFT_PAYLOAD_BYTES);
-        QByteArray crc = rxBuffer.right(PACKET_CRC_BYTES);
-        rxBuffer.remove(0, RX_FFT_PACKET_BYTES);
+        QByteArray payload = rxBuffer.mid(PACKET_HEADER_BYTES, payloadSize);
+        QByteArray crc = rxBuffer.mid(PACKET_HEADER_BYTES + payloadSize, PACKET_CRC_BYTES);
+        rxBuffer.remove(0, packetSize);
 
         if(parseCrc(crc) == calcCrc(payload))
         {

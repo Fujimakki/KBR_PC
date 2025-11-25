@@ -50,13 +50,13 @@ private:
     SerialWorker *sWorker = nullptr;
 
     QTimer *portCmbBTimer = nullptr;
+#ifdef FPS_LOCK
     QElapsedTimer rawRenderTimer;
+    QElapsedTimer fftRenderTimer;
+#endif // FPS_LOCK
 
     QLineSeries *waveform = nullptr;
     QChart *chart = nullptr;
-
-    std::vector<qreal> rawData;
-    std::vector<qreal> fftData;
 
     static constexpr quint16 PORT_CMBB_UPD_TIMEOUT = 5000;    // Time in mseconds
     static constexpr quint16 FRAME_UPDATE_TIMEOUT = 33;    // Time in mseconds
@@ -65,6 +65,9 @@ private:
     static constexpr quint16 FFT_PAYLOAD_FLOATS = 2048;
 
     static constexpr qreal ADC_SAMPLE_RATE_HZ = 2.4e6;
+
+    std::vector<qreal> rawData;
+    std::vector<qreal> fftData;
 
     void setupGraph(PayloadType type);
     void configChart();
