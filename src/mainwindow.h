@@ -66,7 +66,7 @@ private:
 
     static constexpr qreal ADC_SAMPLE_RATE_HZ = 2.4e6;
 
-    std::vector<qreal> rawData;
+    QList<QPointF> rawData;
     std::vector<qreal> fftData;
 
     void setupGraph(PayloadType type);

@@ -1,5 +1,4 @@
 #include "spectrumgrapher.h"
-#include <QPainter>
 #include <QPaintEvent>
 #include <QPen>
 
@@ -12,6 +11,9 @@ SpectrumGrapher::SpectrumGrapher(QWidget *parent)
     QFont f = font();
     f.setPixelSize(10);
     setFont(f);
+
+    QPainter painter(this);
+    drawGrid(&painter);
 }
 
 void SpectrumGrapher::setAmplitudes(const std::vector<qreal> &amplitudes)
@@ -25,24 +27,19 @@ void SpectrumGrapher::setAmplitudes(const std::vector<qreal> &amplitudes)
 
     lines.clear();
 
-    const qreal w = width();
-    const qreal h = height();
+    const qreal w = width() - leftMargin - rightMargin;
+    const qreal h = height() - upperMargin - bottomMargin;
     const qreal xStep = w / binCount;
 
     for (size_t i = 0; i < binCount; ++i)
     {
-        qreal x = i * xStep;
-        qreal harmonicAmp = amplitudes[i] / Y_AXES;
+        qreal x = leftMargin + i * xStep;
+        qreal harmonicAmp = ( amplitudes[i] > yAxes ? yAxes : amplitudes[i] ) / yAxes;
 
-        lines.append( QLineF(x, h, x, h - (harmonicAmp * h)) );
+        lines.append( QLineF(x, height() - bottomMargin, x, upperMargin + h * (1 - harmonicAmp)) );
     }
 
     update();
-}
-
-void SpectrumGrapher::setSampleRate(int sampleRate)
-{
-    maxFreq = sampleRate / 2.0;
 }
 
 void SpectrumGrapher::paintEvent(QPaintEvent *)
@@ -58,28 +55,42 @@ void SpectrumGrapher::paintEvent(QPaintEvent *)
 
 void SpectrumGrapher::drawGrid(QPainter *painter)
 {
-    if (maxFreq <= 0 || binCount == 0)
+    if (maxFreq <= 0)
     {
         return;
     }
 
     painter->setPen(QPen(Qt::gray, 1, Qt::DotLine));
 
-    const int numTicks = 10; // Draw 10 frequency labels
-    const double w = width();
-    const double h = height();
-    const double plotH = h - bottomMargin;
+    const quint8 numAmps = 4;    // Draw 5 amplitude labels
+    const quint8 numFreqs = 10;    // Draw 10 frequency labels
+    const qreal h = height() - upperMargin - bottomMargin;
+    const qreal w = width() - leftMargin - rightMargin;
 
-    for (int i = 0; i <= numTicks; ++i) {
-        double ratio = static_cast<double>(i) / numTicks;
-        double x = ratio * w;
+    for(quint8 i = 0; i <= numAmps; i++)
+    {
+        qreal ratio = static_cast<qreal>(i) / numAmps;
+        qreal y = upperMargin + ratio * h;
 
-        painter->drawLine(QLineF(x, 0, x, plotH));
+        painter->drawLine(QLineF(leftMargin, y, width() - rightMargin, y));
 
-        double freq = ratio * maxFreq;
-        QString text = QString::number(freq / 1000.0, 'f', 1) + "k";
+        qreal amp = static_cast<qreal>(numAmps - i) / numAmps * yAxes;
+        QString text = QString::number(amp) + "V";
 
         int textWidth = fontMetrics().horizontalAdvance(text);
-        painter->drawText(x - (textWidth / 2), h - 5, text);
+        painter->drawText(leftMargin - textWidth - 5.0f, y, text);
+    }
+
+    for (quint8 i = 0; i <= numFreqs; ++i) {
+        qreal ratio = static_cast<qreal>(i) / numFreqs;
+        qreal x = leftMargin + ratio * w;
+
+        painter->drawLine(QLineF(x, upperMargin, x, height() - bottomMargin));
+
+        qreal freq = ratio * maxFreq;
+        QString text = QString::number(freq / 1000.0, 'f', 1) + "kHz";
+
+        int textWidth = fontMetrics().horizontalAdvance(text);
+        painter->drawText(x - (textWidth / 2.0f), height() + 5.0f - bottomMargin / 2.0f, text);
     }
 }

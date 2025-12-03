@@ -21,9 +21,7 @@ MainWindow::MainWindow(QWidget *parent)
     ui->setupUi(this);
 
     rawData.resize(RAW_PAYLOAD_FLOATS);
-    rawData.reserve(RAW_PAYLOAD_FLOATS);
     fftData.resize(FFT_PAYLOAD_FLOATS);
-    fftData.reserve(FFT_PAYLOAD_FLOATS);
 
 #ifdef FPS_LOCK
     rawRenderTimer.start();
@@ -102,7 +100,7 @@ void MainWindow::rawDataReceived(const QByteArray &barr_payload)
     {
         float value;
         memcpy(&value, &payload[i * sizeof(float)], sizeof(float));
-        rawData[i] = value;
+        rawData[i] = QPointF(i, value);
     }
 
     setupGraph(PayloadType::Raw);
@@ -124,12 +122,7 @@ void MainWindow::setupGraph(PayloadType type)
     {
         case PayloadType::Raw:
         {
-            QList<QPointF> points;
-            points.reserve(1000);
-            for(quint16 i = 0; i < 1000; i++) {
-                points.append(QPointF(i, rawData[i]));
-            }
-            waveform->replace(points);
+            waveform->replace(rawData);
             break;
         }
         case PayloadType::Fft:
@@ -149,14 +142,17 @@ void MainWindow::configChart()
     chart->setTheme(QChart::ChartThemeDark);
     chart->addSeries(waveform);
 
+    waveform->setUseOpenGL(true);
+
     QValueAxis *axisY = new QValueAxis();
-    axisY->setRange(0, 3.3);
+    axisY->setRange(0, 4);
     chart->addAxis(axisY, Qt::AlignLeft);
+    waveform->attachAxis(axisY);
 
     QValueAxis *axisX = new QValueAxis();
-    axisX->setRange(0, 1000);
+    axisX->setRange(0, RAW_PAYLOAD_FLOATS);
     chart->addAxis(axisX, Qt::AlignBottom);
-
+    waveform->attachAxis(axisX);
 }
 
 void MainWindow::configChartView()

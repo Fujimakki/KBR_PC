@@ -1,6 +1,5 @@
 # This file is used to ignore files which are generated
 # ----------------------------------------------------------------------------
-.gitignore
 
 *~
 *.autosave
@@ -35,6 +34,8 @@ Thumbs.db
 *.rc
 /.qmake.cache
 /.qmake.stash
+.clangd
+compile_commands.json
 
 # qtcreator generated files
 *.pro.user*
@@ -46,12 +47,15 @@ CMakeLists.txt.user*
 
 # Vim temporary files
 .*.swp
+.vimrc
+.nvimrc
+.exrc
 
 # Visual Studio generated files
 *.ib_pdb_index
 *.idb
 *.ilk
-*.pdb
+
 *.sln
 *.suo
 *.vcproj
@@ -81,3 +85,4 @@ CMakeLists.txt.user*
 .rcc/
 .uic/
 /build*/
+out/

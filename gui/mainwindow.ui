@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1084</width>
-    <height>576</height>
+    <width>1209</width>
+    <height>639</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -50,12 +50,19 @@
      </layout>
     </item>
     <item row="1" column="0">
-     <layout class="QHBoxLayout" name="graphsLayout">
+     <layout class="QHBoxLayout" name="horizontalLayout">
       <property name="spacing">
        <number>20</number>
       </property>
       <item>
-       <widget class="QChartView" name="waveformGraph"/>
+       <widget class="WaveformGrapher" name="waveformGraph" native="true">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+       </widget>
       </item>
       <item>
        <widget class="SpectrumGrapher" name="spectrumGraph" native="true">
@@ -76,8 +83,8 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1084</width>
-     <height>29</height>
+     <width>1209</width>
+     <height>30</height>
     </rect>
    </property>
   </widget>
@@ -85,14 +92,15 @@
  </widget>
  <customwidgets>
   <customwidget>
-   <class>QChartView</class>
-   <extends>QGraphicsView</extends>
-   <header>qchartview.h</header>
-  </customwidget>
-  <customwidget>
    <class>SpectrumGrapher</class>
    <extends>QWidget</extends>
    <header>spectrumgrapher.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>WaveformGrapher</class>
+   <extends>QWidget</extends>
+   <header>waveformgrapher.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

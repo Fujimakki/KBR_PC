@@ -47,6 +47,7 @@ private:
 
     const QByteArray FFT_PACKET_HEADER = QByteArray::fromHex("AA52");
     const QByteArray RAW_PACKET_HEADER = QByteArray::fromHex("AA51");
+    const QByteArray AWS_PACKET_HEADER = QByteArray::fromHex("AA31");
 
     void processBuffer();
     quint32 parseCrc(const QByteArray &crc);

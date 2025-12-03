@@ -55,4 +55,4 @@ qt_generate_deploy_app_script(
 install(SCRIPT ${deploy_script})
 
 
-add_compile_definitions(FPS_LOCK)
+#add_compile_definitions(FPS_LOCK)
