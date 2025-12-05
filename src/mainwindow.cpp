@@ -6,7 +6,6 @@
 #include <QBarCategoryAxis>
 #include <QChartView>
 #include <QSerialPortInfo>
-#include <array>
 #include <cstring>
 
 MainWindow::MainWindow(QWidget *parent)
@@ -32,8 +31,6 @@ MainWindow::MainWindow(QWidget *parent)
     portCmbBTimer->setSingleShot(true);
     connect(portCmbBTimer, &QTimer::timeout, this, &MainWindow::refreshPortList);
 
-    configChart();
-    configChartView();
     ui->spectrumGraph->setSampleRate(ADC_SAMPLE_RATE_HZ);
     refreshPortList();
 
@@ -100,7 +97,7 @@ void MainWindow::rawDataReceived(const QByteArray &barr_payload)
     {
         float value;
         memcpy(&value, &payload[i * sizeof(float)], sizeof(float));
-        rawData[i] = QPointF(i, value);
+        rawData[i] = value;
     }
 
     setupGraph(PayloadType::Raw);
@@ -122,7 +119,7 @@ void MainWindow::setupGraph(PayloadType type)
     {
         case PayloadType::Raw:
         {
-            waveform->replace(rawData);
+            // TODO: Implement graph update
             break;
         }
         case PayloadType::Fft:
@@ -135,30 +132,6 @@ void MainWindow::setupGraph(PayloadType type)
             break;
         }
     }
-}
-
-void MainWindow::configChart()
-{
-    chart->setTheme(QChart::ChartThemeDark);
-    chart->addSeries(waveform);
-
-    waveform->setUseOpenGL(true);
-
-    QValueAxis *axisY = new QValueAxis();
-    axisY->setRange(0, 4);
-    chart->addAxis(axisY, Qt::AlignLeft);
-    waveform->attachAxis(axisY);
-
-    QValueAxis *axisX = new QValueAxis();
-    axisX->setRange(0, RAW_PAYLOAD_FLOATS);
-    chart->addAxis(axisX, Qt::AlignBottom);
-    waveform->attachAxis(axisX);
-}
-
-void MainWindow::configChartView()
-{
-    ui->waveformGraph->setChart(chart);
-    ui->waveformGraph->setRenderHint(QPainter::Antialiasing);
 }
 
 void MainWindow::refreshPortList()

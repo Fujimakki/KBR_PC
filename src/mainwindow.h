@@ -50,6 +50,7 @@ private:
     SerialWorker *sWorker = nullptr;
 
     QTimer *portCmbBTimer = nullptr;
+
 #ifdef FPS_LOCK
     QElapsedTimer rawRenderTimer;
     QElapsedTimer fftRenderTimer;
@@ -66,11 +67,9 @@ private:
 
     static constexpr qreal ADC_SAMPLE_RATE_HZ = 2.4e6;
 
-    QList<QPointF> rawData;
+    std::vector<qreal> rawData;
     std::vector<qreal> fftData;
 
     void setupGraph(PayloadType type);
-    void configChart();
-    void configChartView();
 };
 #endif // MAINWINDOW_H

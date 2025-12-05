@@ -20,21 +20,26 @@ protected:
 private:
     QList<QLineF> lines;
 
-    QPen seriesPen = QPen(Qt::cyan, 1);
-    QPen gridPen = QPen(Qt::gray, 1, Qt::DotLine);
+    const QPen seriesPen = QPen(Qt::cyan, 1);
+    const QPen gridPen = QPen(Qt::gray, 1, Qt::DotLine);
 
     qreal yAxes = 4.4;
     double maxFreq = 1000.0;
     int binCount = 0;
 
-    static constexpr int upperMargin = 20;
-    static constexpr int bottomMargin = 20;
-    static constexpr int leftMargin = 40;
-    static constexpr int rightMargin = 20;
+    const quint8 numAmps = 4;
+    const quint8 numFreqs = 10;
+
+    static constexpr qreal upperMargin = 20;
+    static constexpr qreal bottomMargin = 20;
+    static constexpr qreal leftMargin = 40;
+    static constexpr qreal rightMargin = 20;
 
     static constexpr quint16 DATA_SIZE = 2048;
 
     void drawGrid(QPainter *painter);
+    void drawXGridLines(QPainter* painter, const qreal &hGrid);
+    void drawYGridLines(QPainter* painter, const qreal &wGrid);
 };
 
 #endif // SPECTRUMGRAPHER_H

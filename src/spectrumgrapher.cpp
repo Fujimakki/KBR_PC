@@ -1,6 +1,7 @@
 #include "spectrumgrapher.h"
 #include <QPaintEvent>
 #include <QPen>
+#include <qtypes.h>
 
 SpectrumGrapher::SpectrumGrapher(QWidget *parent)
     : QWidget{parent}
@@ -12,8 +13,7 @@ SpectrumGrapher::SpectrumGrapher(QWidget *parent)
     f.setPixelSize(10);
     setFont(f);
 
-    QPainter painter(this);
-    drawGrid(&painter);
+    update();
 }
 
 void SpectrumGrapher::setAmplitudes(const std::vector<qreal> &amplitudes)
@@ -47,7 +47,7 @@ void SpectrumGrapher::paintEvent(QPaintEvent *)
     QPainter painter(this);
     painter.fillRect(rect(), Qt::black);
 
-    painter.setPen(QPen(Qt::cyan, 1));
+    painter.setPen(seriesPen);
     painter.drawLines(lines);
 
     drawGrid(&painter);
@@ -55,22 +55,24 @@ void SpectrumGrapher::paintEvent(QPaintEvent *)
 
 void SpectrumGrapher::drawGrid(QPainter *painter)
 {
-    if (maxFreq <= 0)
-    {
-        return;
-    }
+    painter->setPen(gridPen);
 
-    painter->setPen(QPen(Qt::gray, 1, Qt::DotLine));
+    const qreal wGraph = width();
+    const qreal hGraph = height();
 
-    const quint8 numAmps = 4;    // Draw 5 amplitude labels
-    const quint8 numFreqs = 10;    // Draw 10 frequency labels
-    const qreal h = height() - upperMargin - bottomMargin;
-    const qreal w = width() - leftMargin - rightMargin;
+    const qreal wGrid = wGraph - leftMargin - rightMargin;
+    const qreal hGrid = hGraph - upperMargin - bottomMargin;
 
+    drawXGridLines(painter, hGrid);
+    drawYGridLines(painter, wGrid);
+}
+
+void SpectrumGrapher::drawXGridLines(QPainter* painter, const qreal &hGrid)
+{
     for(quint8 i = 0; i <= numAmps; i++)
     {
         qreal ratio = static_cast<qreal>(i) / numAmps;
-        qreal y = upperMargin + ratio * h;
+        qreal y = upperMargin + ratio * hGrid;
 
         painter->drawLine(QLineF(leftMargin, y, width() - rightMargin, y));
 
@@ -80,10 +82,14 @@ void SpectrumGrapher::drawGrid(QPainter *painter)
         int textWidth = fontMetrics().horizontalAdvance(text);
         painter->drawText(leftMargin - textWidth - 5.0f, y, text);
     }
+}
 
-    for (quint8 i = 0; i <= numFreqs; ++i) {
+void SpectrumGrapher::drawYGridLines(QPainter* painter, const qreal &wGrid)
+{
+    for (quint8 i = 0; i <= numFreqs; ++i)
+    {
         qreal ratio = static_cast<qreal>(i) / numFreqs;
-        qreal x = leftMargin + ratio * w;
+        qreal x = leftMargin + ratio * wGrid;
 
         painter->drawLine(QLineF(x, upperMargin, x, height() - bottomMargin));
 
@@ -93,4 +99,6 @@ void SpectrumGrapher::drawGrid(QPainter *painter)
         int textWidth = fontMetrics().horizontalAdvance(text);
         painter->drawText(x - (textWidth / 2.0f), height() + 5.0f - bottomMargin / 2.0f, text);
     }
+
 }
+
