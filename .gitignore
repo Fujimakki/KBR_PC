@@ -37,6 +37,7 @@ Thumbs.db
 .clangd
 .cache
 compile_commands.json
+.direnv/
 
 # qtcreator generated files
 *.pro.user*

@@ -24,12 +24,18 @@ WaveformGrapher::WaveformGrapher(QWidget *parent)
 void WaveformGrapher::addPoints(const std::vector<qreal> &amplitudes)
 {
     const qreal wGrid = width() - leftMargin - rightMargin;
+    const qreal hGrid = height() - upperMargin - bottomMargin;
+
     const qreal xStep = wGrid / xAxes;
+    const qreal yStep = hGrid / yAxes;
 
     QPointF point;
     for(qsizetype i = 0; i < amplitudes.size(); i++)
     {
-        point = QPoint(i * xStep, amplitudes[i]);
+        qreal xPoint = leftMargin + i * xStep;
+        qreal yPoint = hGrid + upperMargin - amplitudes[i] * yStep;
+
+        point = QPoint(xPoint, yPoint);
 
         points << (point);
         if(points.size() > xAxes)
@@ -37,6 +43,8 @@ void WaveformGrapher::addPoints(const std::vector<qreal> &amplitudes)
             points.removeFirst();
         }
     }
+
+    update();
 }
 
 

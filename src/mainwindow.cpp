@@ -119,7 +119,7 @@ void MainWindow::setupGraph(PayloadType type)
     {
         case PayloadType::Raw:
         {
-            // TODO: Implement graph update
+            ui->waveformGraph->addPoints(rawData);
             break;
         }
         case PayloadType::Fft:
