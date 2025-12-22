@@ -1,5 +1,4 @@
 #include "serialworker.h"
-#include <zlib.h>
 #include <QDebug>
 #include <QThread>
 
@@ -31,7 +30,7 @@ void SerialWorker::doConnect(const QString &portName)
     connect(port, &QSerialPort::readyRead, this, &SerialWorker::onReadyRead);
     connect(port, &QSerialPort::errorOccurred, this, &SerialWorker::handleSerialError);
 
-    if(port->open(QIODevice::ReadOnly))
+    if(port->open(QIODevice::ReadWrite))    // Since it is needed to control STM32 port is opened as ReadWrite
     {
         qDebug() << "Serial port opened in thread:" << QThread::currentThread();
     }
@@ -68,78 +67,38 @@ void SerialWorker::processBuffer()
 {
     while(true)
     {
-        auto rawIndex = rxBuffer.indexOf(RAW_PACKET_HEADER);
-        auto fftIndex = rxBuffer.indexOf(FFT_PACKET_HEADER);
-        if(rawIndex == -1 && fftIndex == -1)
+        RxPacket parser;
+        parser.findPacket(rxBuffer);
+
+        if(parser.isPartedPacket())
         {
-            rxBuffer.clear();
             return;
         }
 
-        qsizetype startIndex = -1;
-        bool isRaw = false;
-
-        if( rawIndex != -1 && (fftIndex == -1 || rawIndex < fftIndex) )
-        {
-            startIndex = rawIndex;
-            isRaw = true;
-        }
-        else if( fftIndex != -1 && (rawIndex == -1 || fftIndex < rawIndex) )
-        {
-            startIndex = fftIndex;
-        }
-
-        if(startIndex > 0)
-        {
-            rxBuffer.remove(0, startIndex);
-        }
-
-        quint16 packetSize = isRaw ? RX_RAW_PACKET_BYTES : RX_FFT_PACKET_BYTES;
-        quint16 payloadSize = isRaw ? RX_RAW_PAYLOAD_BYTES : RX_FFT_PAYLOAD_BYTES;
-
-        if (rxBuffer.size() < packetSize) {
-            return;
-        }
-
-        QByteArray payload = rxBuffer.mid(PACKET_HEADER_BYTES, payloadSize);
-        QByteArray crc = rxBuffer.mid(PACKET_HEADER_BYTES + payloadSize, PACKET_CRC_BYTES);
-        rxBuffer.remove(0, packetSize);
-
-        if(parseCrc(crc) == calcCrc(payload))
-        {
-            if(isRaw)
-            {
-                emit rawDataParsed(payload);
-            }
-            else
-            {
-                emit fftDataParsed(payload);
-            }
-        }
-        else
+        if(parser.isBadPacket())
         {
             emit crcError();
+            break;
+        }
+
+        switch(parser.getType())
+        {
+            case RxPacket::AWS:
+                emit awsDataParsed(parser.getPayload());
+                break;
+
+            case RxPacket::RAW:
+                emit rawDataParsed(parser.getPayload());
+                break;
+
+            case RxPacket::FFT:
+                emit fftDataParsed(parser.getPayload());
+                break;
+
+            default:
+                emit typeError(parser.getType());
+                break;
         }
     }
 }
 
-quint32 SerialWorker::parseCrc(const QByteArray &crc)
-{
-    quint32 crcValue = 0;
-    for(quint8 i = 0; i < PACKET_CRC_BYTES; i++)
-    {
-        crcValue |= (static_cast<quint32>(static_cast<quint8>(crc[i]))) << (i << 3);
-    }
-
-    return crcValue;
-}
-
-quint32 SerialWorker::calcCrc(const QByteArray &payload)
-{
-    uLong crcValue = crc32(0L, Z_NULL, 0); // Initialize CRC
-
-    // Calculate
-    crcValue = crc32(crcValue, reinterpret_cast<const Bytef*>(payload.constData()), payload.size());
-
-    return static_cast<quint32>(crcValue);
-}

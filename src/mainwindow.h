@@ -7,6 +7,9 @@
 #include <QChart>
 #include <QTimer>
 #include <QElapsedTimer>
+#include <qlist.h>
+#include <qstringview.h>
+#include <qwidget.h>
 #include <vector>
 
 #include "serialworker.h"
@@ -29,19 +32,23 @@ public:
 
 signals:
     void connectToPort(const QString &portName);
+    void portsChanged(const QList<QSerialPortInfo> &ports);
 
 private slots:
+    void awsDataReceived(const QByteArray &barr_payload);
     void fftDataReceived(const QByteArray &barr_payload);
     void rawDataReceived(const QByteArray &barr_payload);
     void onCrcError();
     void onPortError(const QString &error);
-    void refreshPortList();
+    void checkPorts();
+    void refreshPortList(const QList<QSerialPortInfo> &ports);
 
 private:
     enum PayloadType
     {
-        Raw,
-        Fft
+        AWS,
+        RAW,
+        FFT
     };
 
     Ui::MainWindow *ui;
@@ -56,9 +63,6 @@ private:
     QElapsedTimer fftRenderTimer;
 #endif // FPS_LOCK
 
-    QLineSeries *waveform = nullptr;
-    QChart *chart = nullptr;
-
     static constexpr quint16 PORT_CMBB_UPD_TIMEOUT = 5000;    // Time in mseconds
     static constexpr quint16 FRAME_UPDATE_TIMEOUT = 33;    // Time in mseconds
 
@@ -67,6 +71,7 @@ private:
 
     static constexpr qreal ADC_SAMPLE_RATE_HZ = 2.4e6;
 
+    quint16 awsData;
     std::vector<qreal> rawData;
     std::vector<qreal> fftData;
 
