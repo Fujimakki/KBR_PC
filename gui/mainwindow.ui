@@ -73,7 +73,7 @@
         <item row="0" column="0">
          <layout class="QHBoxLayout" name="horizontalLayout_2">
           <item>
-           <widget class="QSpinBox" name="spinBox">
+           <widget class="QSpinBox" name="awsSpinBox">
             <property name="minimumSize">
              <size>
               <width>200</width>
@@ -107,7 +107,7 @@
            </widget>
           </item>
           <item>
-           <widget class="QPushButton" name="pushButton">
+           <widget class="QPushButton" name="awsBtn">
             <property name="text">
              <string>Set AWS</string>
             </property>

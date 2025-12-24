@@ -1,6 +1,11 @@
 #include "serialworker.h"
+#include "txpacket.h"
 #include <QDebug>
 #include <QThread>
+#include <qlogging.h>
+#include <qmessagebox.h>
+#include <qstringview.h>
+#include <QMessageBox>
 
 SerialWorker::SerialWorker(QObject *parent)
     : QObject{parent}
@@ -78,7 +83,7 @@ void SerialWorker::processBuffer()
         if(parser.isBadPacket())
         {
             emit crcError();
-            break;
+            continue;
         }
 
         switch(parser.getType())
@@ -99,6 +104,29 @@ void SerialWorker::processBuffer()
                 emit typeError(parser.getType());
                 break;
         }
+    }
+}
+
+void SerialWorker::sendMessage(const TxPacket::PacketTypes &type, const QByteArray &data)
+{
+    if(!port)
+    {
+        return;
+    }
+
+    TxPacket creator;
+    QByteArray message = creator(type, data);
+
+    port->write(message);
+
+    if(!port->waitForBytesWritten(3000))
+    {
+        emit writeError();
+        qDebug() << "The message" << message << " wasn't sent.";
+    }
+    else
+    {
+        qDebug() << "The message " << message << " was sent.";
     }
 }
 

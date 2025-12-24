@@ -1,17 +1,11 @@
 #include "mainwindow.h"
 #include "serialworker.h"
+#include "txpacket.h"
 #include "ui_mainwindow.h"
 #include <QMessageBox>
-#include <QBarSet>
-#include <QValueAxis>
-#include <QBarCategoryAxis>
-#include <QChartView>
 #include <QSerialPortInfo>
-#include <cstring>
-#include <qdialog.h>
-#include <qserialportinfo.h>
-#include <qstringview.h>
-#include <qtypes.h>
+#include <QDialog>
+#include <QSerialPortInfo>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -31,16 +25,18 @@ MainWindow::MainWindow(QWidget *parent)
 #endif // FPS_LOCK
 
     sWorker->moveToThread(sThread);
-    portCmbBTimer->setSingleShot(true);
     connect(portCmbBTimer, &QTimer::timeout, this, &MainWindow::checkPorts);
+    portCmbBTimer->start(PORT_CMBB_UPD_TIMEOUT);
     connect(this, &MainWindow::portsChanged, this, &MainWindow::refreshPortList);
 
     ui->spectrumGraph->setSampleRate(ADC_SAMPLE_RATE_HZ);
-    checkPorts();
 
     connect(this, &MainWindow::connectToPort, sWorker, &SerialWorker::doConnect);
     connect(ui->conBtn, &QPushButton::clicked, [this](){ emit connectToPort(this->ui->portCmbBox->currentText());});
     connect(ui->disconBtn, &QPushButton::clicked, sWorker, &SerialWorker::doDisconnect);
+
+    connect(ui->awsBtn, &QPushButton::pressed, [this](){ emit sendMessage(TxPacket::AWS, QByteArray::number(ui->awsSpinBox->value())); });
+    connect(this, &MainWindow::sendMessage, sWorker, &SerialWorker::sendMessage);
 
     connect(sWorker, &SerialWorker::crcError, this, &MainWindow::onCrcError);
     connect(sWorker, &SerialWorker::portError, this, &MainWindow::onPortError);
@@ -131,14 +127,19 @@ void MainWindow::setupGraph(PayloadType type)
         case PayloadType::AWS:
         {
             QMessageBox::information(this, "AWS" , "Averaging window size is successfully set");
+            qDebug() << "Averaging window size is successfully set.";
             break;
         }
         case PayloadType::RAW:
         {
+            ui->waveformGraph->addPoints(rawData);
+            qDebug() << "waveformGraph is updated.";
             break;
         }
         case PayloadType::FFT:
         {
+            qDebug() << "spectrumGraph is updated.";
+            ui->spectrumGraph->setAmplitudes(fftData);
             break;
         }
         default:
@@ -169,9 +170,6 @@ void MainWindow::checkPorts()
             return;
         }
     }
-
-
-    portCmbBTimer->start(PORT_CMBB_UPD_TIMEOUT);
 }
 
 void MainWindow::refreshPortList(const QList<QSerialPortInfo> &ports)

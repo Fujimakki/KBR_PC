@@ -40,6 +40,7 @@
           rm -f .clangd
 
           echo "CompileFlags:" >> .clangd
+          echo "  Remove: [-mno-direct-extern-access]" >> .clangd
           echo "  Add:" >> .clangd
 
           echo "⚙️  Extracting GCC C++ include paths..."

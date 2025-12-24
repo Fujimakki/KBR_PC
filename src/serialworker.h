@@ -7,6 +7,7 @@
 #include <qstringview.h>
 
 #include "rxpacket.h"
+#include "txpacket.h"
 
 class SerialWorker : public QObject
 {
@@ -21,14 +22,18 @@ signals:
     void crcError();
     void typeError(const RxPacket::PacketTypes);
     void portError(const QString &error);
+    void writeError();
 
     void awsDataParsed(const QByteArray &payload);
     void rawDataParsed(const QByteArray &payload);
     void fftDataParsed(const QByteArray &payload);
 
+    void messageSent();
+
 public slots:
     void doConnect(const QString &portName);
     void doDisconnect();
+    void sendMessage(const TxPacket::PacketTypes &type, const QByteArray &data);
 
 private slots:
     void onReadyRead();

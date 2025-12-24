@@ -8,6 +8,8 @@ void RxPacket::findPacket(QByteArray &rxBuffer)
     auto header = findHeader(rxBuffer);
     if(header.first == -1 || header.second == PacketTypes::NONE)
     {
+        partedPacket = true;
+        rxBuffer.clear();
         return;
     }
 
@@ -105,11 +107,11 @@ QPair<qsizetype, RxPacket::PacketTypes> RxPacket::findHeader(const QByteArray &r
             {
                 res.second = PacketTypes::AWS;
             }
-            else if(type == PACKET_HEADER_RAW)
+            else if(header == PACKET_HEADER_RAW)
             {
                 res.second = PacketTypes::RAW;
             }
-            else if(type == PACKET_HEADER_FFT)
+            else if(header == PACKET_HEADER_FFT)
             {
                 res.second = PacketTypes::FFT;
             }
