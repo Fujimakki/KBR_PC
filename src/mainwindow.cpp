@@ -1,12 +1,11 @@
 #include "mainwindow.h"
+#include "serialworker.h"
+#include "txpacket.h"
 #include "ui_mainwindow.h"
 #include <QMessageBox>
-#include <QBarSet>
-#include <QValueAxis>
-#include <QBarCategoryAxis>
-#include <QChartView>
 #include <QSerialPortInfo>
-#include <cstring>
+#include <QDialog>
+#include <QSerialPortInfo>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -14,8 +13,6 @@ MainWindow::MainWindow(QWidget *parent)
     , sThread(new QThread(this))
     , sWorker(new SerialWorker)
     , portCmbBTimer(new QTimer(this))
-    , waveform(new QLineSeries(this))
-    , chart(new QChart(nullptr))
 {
     ui->setupUi(this);
 
@@ -28,19 +25,23 @@ MainWindow::MainWindow(QWidget *parent)
 #endif // FPS_LOCK
 
     sWorker->moveToThread(sThread);
-    portCmbBTimer->setSingleShot(true);
-    connect(portCmbBTimer, &QTimer::timeout, this, &MainWindow::refreshPortList);
+    connect(portCmbBTimer, &QTimer::timeout, this, &MainWindow::checkPorts);
+    portCmbBTimer->start(PORT_CMBB_UPD_TIMEOUT);
+    connect(this, &MainWindow::portsChanged, this, &MainWindow::refreshPortList);
 
     ui->spectrumGraph->setSampleRate(ADC_SAMPLE_RATE_HZ);
-    refreshPortList();
 
     connect(this, &MainWindow::connectToPort, sWorker, &SerialWorker::doConnect);
     connect(ui->conBtn, &QPushButton::clicked, [this](){ emit connectToPort(this->ui->portCmbBox->currentText());});
     connect(ui->disconBtn, &QPushButton::clicked, sWorker, &SerialWorker::doDisconnect);
 
+    connect(ui->awsBtn, &QPushButton::pressed, [this](){ emit sendMessage(TxPacket::AWS, QByteArray::number(ui->awsSpinBox->value())); });
+    connect(this, &MainWindow::sendMessage, sWorker, &SerialWorker::sendMessage);
+
     connect(sWorker, &SerialWorker::crcError, this, &MainWindow::onCrcError);
     connect(sWorker, &SerialWorker::portError, this, &MainWindow::onPortError);
 
+    connect(sWorker, &SerialWorker::awsDataParsed, this, &MainWindow::awsDataReceived);
     connect(sWorker, &SerialWorker::rawDataParsed, this, &MainWindow::rawDataReceived);
     connect(sWorker, &SerialWorker::fftDataParsed, this, &MainWindow::fftDataReceived);
 
@@ -57,6 +58,12 @@ MainWindow::~MainWindow()
         sThread->quit();
         sThread->wait(1000);
     }
+}
+
+void MainWindow::awsDataReceived(const QByteArray &barr_payload)
+{
+    memcpy(&awsData, barr_payload.constData(), sizeof(quint16));
+    setupGraph(PayloadType::AWS);
 }
 
 void MainWindow::fftDataReceived(const QByteArray &barr_payload)
@@ -78,7 +85,7 @@ void MainWindow::fftDataReceived(const QByteArray &barr_payload)
         fftData[i] = value;
     }
 
-    setupGraph(PayloadType::Fft);
+    setupGraph(FFT);
 }
 
 void MainWindow::rawDataReceived(const QByteArray &barr_payload)
@@ -100,7 +107,7 @@ void MainWindow::rawDataReceived(const QByteArray &barr_payload)
         rawData[i] = value;
     }
 
-    setupGraph(PayloadType::Raw);
+    setupGraph(PayloadType::RAW);
 }
 
 void MainWindow::onCrcError()
@@ -117,13 +124,21 @@ void MainWindow::setupGraph(PayloadType type)
 {
     switch(type)
     {
-        case PayloadType::Raw:
+        case PayloadType::AWS:
         {
-            ui->waveformGraph->addPoints(rawData);
+            QMessageBox::information(this, "AWS" , "Averaging window size is successfully set");
+            qDebug() << "Averaging window size is successfully set.";
             break;
         }
-        case PayloadType::Fft:
+        case PayloadType::RAW:
         {
+            ui->waveformGraph->addPoints(rawData);
+            qDebug() << "waveformGraph is updated.";
+            break;
+        }
+        case PayloadType::FFT:
+        {
+            qDebug() << "spectrumGraph is updated.";
             ui->spectrumGraph->setAmplitudes(fftData);
             break;
         }
@@ -134,27 +149,36 @@ void MainWindow::setupGraph(PayloadType type)
     }
 }
 
-void MainWindow::refreshPortList()
+void MainWindow::checkPorts()
 {
-    const auto serialPortInfos = QSerialPortInfo::availablePorts();
+    const auto newSerialPortInfos = QSerialPortInfo::availablePorts();
+    static QList<QSerialPortInfo> lastSerialPortInfos;
 
-    if(serialPortInfos.count() == ui->portCmbBox->count())
+    if(newSerialPortInfos.size() != lastSerialPortInfos.size())
     {
+        lastSerialPortInfos = newSerialPortInfos;
+        emit portsChanged(lastSerialPortInfos);
         return;
     }
 
-    QString currentSelection = ui->portCmbBox->currentText();
+    for(int i = 0; i < newSerialPortInfos.size(); i++)
+    {
+        if(lastSerialPortInfos[i].portName() != newSerialPortInfos[i].portName())
+        {
+            lastSerialPortInfos = newSerialPortInfos;
+            emit portsChanged(lastSerialPortInfos);
+            return;
+        }
+    }
+}
+
+void MainWindow::refreshPortList(const QList<QSerialPortInfo> &ports)
+{
     ui->portCmbBox->clear();
 
-    for (const QSerialPortInfo &portInfo : serialPortInfos)
+    for(const auto &port : ports)
     {
-        ui->portCmbBox->addItem(portInfo.portName());
+        ui->portCmbBox->addItem(port.portName());
     }
-
-    int index = ui->portCmbBox->findText(currentSelection);
-    if (index != -1) {
-        ui->portCmbBox->setCurrentIndex(index);
-    }
-
-    portCmbBTimer->start(PORT_CMBB_UPD_TIMEOUT);
 }
+
