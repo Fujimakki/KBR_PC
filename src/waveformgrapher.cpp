@@ -23,8 +23,11 @@ WaveformGrapher::WaveformGrapher(QWidget *parent)
 
 void WaveformGrapher::addPoints(const std::vector<qreal> &amplitudes)
 {
-    const qreal wGrid = width() - leftMargin - rightMargin;
-    const qreal hGrid = height() - upperMargin - bottomMargin;
+    const qreal wGraph = width();
+    const qreal hGraph = height();
+
+    const qreal wGrid = wGraph - leftMargin - rightMargin;
+    const qreal hGrid = hGraph - upperMargin - bottomMargin;
 
     const qreal xStep = wGrid / xAxes;
     const qreal yStep = hGrid / yAxes;
@@ -32,8 +35,10 @@ void WaveformGrapher::addPoints(const std::vector<qreal> &amplitudes)
     QPointF point;
     for(qsizetype i = 0; i < amplitudes.size(); i++)
     {
-        qreal xPoint = leftMargin + i * xStep;
-        qreal yPoint = hGrid + upperMargin - amplitudes[i] * yStep;
+        int value = amplitudes[i] / yAxes * hGrid;
+
+        qreal xPoint = wGraph - (i * xStep + rightMargin);
+        qreal yPoint = hGraph - (value + bottomMargin);
 
         point = QPoint(xPoint, yPoint);
 
@@ -54,7 +59,7 @@ void WaveformGrapher::paintEvent(QPaintEvent *)
     painter.fillRect(rect(), Qt::black);
 
     painter.setPen(seriesPen);
-    painter.drawPoints(points);
+    painter.drawPolyline(points);
 
     drawGrid(&painter);
 }

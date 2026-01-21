@@ -17,14 +17,14 @@ public:
     TxPacket() = default;
     ~TxPacket() = default;
 
-    QByteArray operator()(const PacketTypes &type, const QByteArray &payload);
+    QByteArray operator()(const PacketTypes &type, quint16 payload);
 
 private:
     const QByteArray HEADER_PREFIX = QByteArray::fromHex("AA");
 
     QByteArray packet;
 
-    QByteArray calcCrc(const QByteArray &payload);
+    QByteArray calcCrc(quint16 data);
 
 };
 

@@ -24,7 +24,7 @@ private:
     const QPen gridPen = QPen(Qt::gray, 1, Qt::DotLine);
 
     qreal yAxes = 4.4;
-    double maxFreq = 1000.0;
+    double maxFreq = 2048.0;
     int binCount = 0;
 
     const quint8 numAmps = 4;

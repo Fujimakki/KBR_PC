@@ -28,7 +28,7 @@ private:
     const QPen seriesPen = QPen(Qt::cyan, 1);
     const QPen gridPen = QPen(Qt::gray, 1, Qt::DotLine);
 
-    qreal xAxes = 4096;    // Count of visible points
+    qreal xAxes = 4096;    // Count of visible pamplitudes[i]oints
     qreal yAxes = 4.4;    // Max value that can be displayed
 
     const quint8 numX = 8;

@@ -2,17 +2,14 @@
 #include "serialworker.h"
 #include "txpacket.h"
 #include "ui_mainwindow.h"
+#include <QDialog>
 #include <QMessageBox>
 #include <QSerialPortInfo>
-#include <QDialog>
-#include <QSerialPortInfo>
+#include <qtypes.h>
 
 MainWindow::MainWindow(QWidget *parent)
-    : QMainWindow(parent)
-    , ui(new Ui::MainWindow)
-    , sThread(new QThread(this))
-    , sWorker(new SerialWorker)
-    , portCmbBTimer(new QTimer(this))
+    : QMainWindow(parent), ui(new Ui::MainWindow), sThread(new QThread(this)),
+    sWorker(new SerialWorker), portCmbBTimer(new QTimer(this))
 {
     ui->setupUi(this);
 
@@ -32,11 +29,24 @@ MainWindow::MainWindow(QWidget *parent)
     ui->spectrumGraph->setSampleRate(ADC_SAMPLE_RATE_HZ);
 
     connect(this, &MainWindow::connectToPort, sWorker, &SerialWorker::doConnect);
-    connect(ui->conBtn, &QPushButton::clicked, [this](){ emit connectToPort(this->ui->portCmbBox->currentText());});
+    connect(
+        ui->conBtn,
+        &QPushButton::clicked,
+        [this]() {
+            emit connectToPort(this->ui->portCmbBox->currentText());
+        }
+    );
     connect(ui->disconBtn, &QPushButton::clicked, sWorker, &SerialWorker::doDisconnect);
 
-    connect(ui->awsBtn, &QPushButton::pressed, [this](){ emit sendMessage(TxPacket::AWS, QByteArray::number(ui->awsSpinBox->value())); });
     connect(this, &MainWindow::sendMessage, sWorker, &SerialWorker::sendMessage);
+    connect(
+        ui->awsBtn,
+        &QPushButton::pressed,
+        [this]() {
+            quint16 awsData = ui->awsSpinBox->value();
+            emit sendMessage(TxPacket::AWS, awsData);
+        }
+    );
 
     connect(sWorker, &SerialWorker::crcError, this, &MainWindow::onCrcError);
     connect(sWorker, &SerialWorker::portError, this, &MainWindow::onPortError);
@@ -50,36 +60,31 @@ MainWindow::MainWindow(QWidget *parent)
     sThread->start();
 }
 
-MainWindow::~MainWindow()
-{
-    delete ui;
+MainWindow::~MainWindow() {
+   delete ui;
 
     if (sThread->isRunning()) {
         sThread->quit();
         sThread->wait(1000);
-    }
+    }    
 }
 
-void MainWindow::awsDataReceived(const QByteArray &barr_payload)
-{
+void MainWindow::awsDataReceived(const QByteArray &barr_payload) {
     memcpy(&awsData, barr_payload.constData(), sizeof(quint16));
     setupGraph(PayloadType::AWS);
 }
 
-void MainWindow::fftDataReceived(const QByteArray &barr_payload)
-{
+void MainWindow::fftDataReceived(const QByteArray &barr_payload) {
 #ifdef FPS_LOCK
-    if(fftRenderTimer.elapsed() < FRAME_UPDATE_TIMEOUT)
-    {
+    if (fftRenderTimer.elapsed() < FRAME_UPDATE_TIMEOUT) {
         return;
     }
     fftRenderTimer.restart();
 #endif // FPS_LOCK
 
-    const char* payload = barr_payload.constData();
+    const char *payload = barr_payload.constData();
 
-    for(quint16 i = 0; i < FFT_PAYLOAD_FLOATS; i++)
-    {
+    for (quint16 i = 0; i < FFT_PAYLOAD_FLOATS; i++) {
         float value;
         memcpy(&value, &payload[i * sizeof(float)], sizeof(float));
         fftData[i] = value;
@@ -88,20 +93,17 @@ void MainWindow::fftDataReceived(const QByteArray &barr_payload)
     setupGraph(FFT);
 }
 
-void MainWindow::rawDataReceived(const QByteArray &barr_payload)
-{
+void MainWindow::rawDataReceived(const QByteArray &barr_payload) {
 #ifdef FPS_LOCK
-    if(rawRenderTimer.elapsed() < FRAME_UPDATE_TIMEOUT)
-    {
+    if (rawRenderTimer.elapsed() < FRAME_UPDATE_TIMEOUT) {
         return;
     }
     rawRenderTimer.restart();
 #endif // FPS_LOCK
 
-    const char* payload = barr_payload.constData();
+    const char *payload = barr_payload.constData();
 
-    for(quint16 i = 0; i < RAW_PAYLOAD_FLOATS; i++)
-    {
+    for (quint16 i = 0; i < RAW_PAYLOAD_FLOATS; i++) {
         float value;
         memcpy(&value, &payload[i * sizeof(float)], sizeof(float));
         rawData[i] = value;
@@ -110,38 +112,37 @@ void MainWindow::rawDataReceived(const QByteArray &barr_payload)
     setupGraph(PayloadType::RAW);
 }
 
-void MainWindow::onCrcError()
-{
-    qDebug() << "CRC Error reported to GUI";
-}
+void MainWindow::onCrcError() { qDebug() << "CRC Error reported to GUI"; }
 
-void MainWindow::onPortError(const QString &error)
-{
+void MainWindow::onPortError(const QString &error) {
     QMessageBox::critical(this, "Serial Port Error", error);
 }
 
-void MainWindow::setupGraph(PayloadType type)
-{
-    switch(type)
+void MainWindow::setupGraph(PayloadType type) {
+    switch (type)
     {
         case PayloadType::AWS:
         {
-            QMessageBox::information(this, "AWS" , "Averaging window size is successfully set");
+            QMessageBox::information(this, "AWS",
+                                    "Averaging window size is successfully set");
             qDebug() << "Averaging window size is successfully set.";
             break;
         }
+
         case PayloadType::RAW:
         {
+            // qDebug() << "waveformGraph is updated.";
             ui->waveformGraph->addPoints(rawData);
-            qDebug() << "waveformGraph is updated.";
             break;
         }
+
         case PayloadType::FFT:
         {
-            qDebug() << "spectrumGraph is updated.";
+            // qDebug() << "spectrumGraph is updated.";
             ui->spectrumGraph->setAmplitudes(fftData);
             break;
         }
+
         default:
         {
             break;
@@ -149,21 +150,19 @@ void MainWindow::setupGraph(PayloadType type)
     }
 }
 
-void MainWindow::checkPorts()
-{
+void MainWindow::checkPorts() {
     const auto newSerialPortInfos = QSerialPortInfo::availablePorts();
     static QList<QSerialPortInfo> lastSerialPortInfos;
 
-    if(newSerialPortInfos.size() != lastSerialPortInfos.size())
-    {
+    if (newSerialPortInfos.size() != lastSerialPortInfos.size()) {
         lastSerialPortInfos = newSerialPortInfos;
         emit portsChanged(lastSerialPortInfos);
         return;
     }
 
-    for(int i = 0; i < newSerialPortInfos.size(); i++)
+    for (int i = 0; i < newSerialPortInfos.size(); i++)
     {
-        if(lastSerialPortInfos[i].portName() != newSerialPortInfos[i].portName())
+        if (lastSerialPortInfos[i].portName() != newSerialPortInfos[i].portName())
         {
             lastSerialPortInfos = newSerialPortInfos;
             emit portsChanged(lastSerialPortInfos);
@@ -172,13 +171,11 @@ void MainWindow::checkPorts()
     }
 }
 
-void MainWindow::refreshPortList(const QList<QSerialPortInfo> &ports)
-{
+void MainWindow::refreshPortList(const QList<QSerialPortInfo> &ports) {
     ui->portCmbBox->clear();
 
-    for(const auto &port : ports)
+    for (const auto &port : ports)
     {
         ui->portCmbBox->addItem(port.portName());
     }
 }
-

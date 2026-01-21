@@ -33,7 +33,7 @@ signals:
 public slots:
     void doConnect(const QString &portName);
     void doDisconnect();
-    void sendMessage(const TxPacket::PacketTypes &type, const QByteArray &data);
+    void sendMessage(const TxPacket::PacketTypes &type, const quint16 &data);
 
 private slots:
     void onReadyRead();

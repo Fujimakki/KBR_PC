@@ -107,7 +107,7 @@ void SerialWorker::processBuffer()
     }
 }
 
-void SerialWorker::sendMessage(const TxPacket::PacketTypes &type, const QByteArray &data)
+void SerialWorker::sendMessage(const TxPacket::PacketTypes &type, const quint16 &data)
 {
     if(!port)
     {
@@ -122,11 +122,11 @@ void SerialWorker::sendMessage(const TxPacket::PacketTypes &type, const QByteArr
     if(!port->waitForBytesWritten(3000))
     {
         emit writeError();
-        qDebug() << "The message" << message << " wasn't sent.";
+        qDebug() << "The message" << message.toHex(' ') << " wasn't sent.";
     }
     else
     {
-        qDebug() << "The message " << message << " was sent.";
+        qDebug() << "The message " << message.toHex(' ') << " was sent.";
     }
 }
 

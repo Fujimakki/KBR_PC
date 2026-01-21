@@ -27,16 +27,17 @@ void SpectrumGrapher::setAmplitudes(const std::vector<qreal> &amplitudes)
 
     lines.clear();
 
-    const qreal w = width() - leftMargin - rightMargin;
-    const qreal h = height() - upperMargin - bottomMargin;
-    const qreal xStep = w / binCount;
+    const qreal wGrid = width() - leftMargin - rightMargin;
+    const qreal hGrid = height() - upperMargin - bottomMargin;
+    const qreal xStep = wGrid / binCount;
 
     for (size_t i = 0; i < binCount; ++i)
     {
-        qreal x = leftMargin + i * xStep;
-        qreal harmonicAmp = ( amplitudes[i] > yAxes ? yAxes : amplitudes[i] ) / yAxes;
+        qreal xHarmonic = leftMargin + i * xStep;
+        qreal yHarmonic = ( amplitudes[i] > yAxes ? yAxes : amplitudes[i] ) / yAxes * hGrid;
 
-        lines.append( QLineF(x, height() - bottomMargin, x, upperMargin + h * (1 - harmonicAmp)) );
+        auto harmaonicLine = QLineF(xHarmonic, height() - bottomMargin, xHarmonic, height() - (bottomMargin + yHarmonic));
+        lines.append(harmaonicLine);
     }
 
     update();

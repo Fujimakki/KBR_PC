@@ -34,7 +34,7 @@ public:
 signals:
     void connectToPort(const QString &portName);
     void portsChanged(const QList<QSerialPortInfo> &ports);
-    void sendMessage(const TxPacket::PacketTypes &type, const QByteArray &data);
+    void sendMessage(const TxPacket::PacketTypes &type, const quint16 &data);
 
 private slots:
     void awsDataReceived(const QByteArray &barr_payload);
