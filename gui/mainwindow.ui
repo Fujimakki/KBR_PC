@@ -42,6 +42,52 @@
         <verstretch>0</verstretch>
        </sizepolicy>
       </property>
+      <property name="palette">
+       <palette>
+        <active>
+         <colorrole role="Window">
+          <brush brushstyle="SolidPattern">
+           <color alpha="255">
+            <red>32</red>
+            <green>35</green>
+            <blue>38</blue>
+           </color>
+          </brush>
+         </colorrole>
+        </active>
+        <inactive>
+         <colorrole role="Window">
+          <brush brushstyle="SolidPattern">
+           <color alpha="255">
+            <red>32</red>
+            <green>35</green>
+            <blue>38</blue>
+           </color>
+          </brush>
+         </colorrole>
+        </inactive>
+        <disabled>
+         <colorrole role="Base">
+          <brush brushstyle="SolidPattern">
+           <color alpha="255">
+            <red>32</red>
+            <green>35</green>
+            <blue>38</blue>
+           </color>
+          </brush>
+         </colorrole>
+         <colorrole role="Window">
+          <brush brushstyle="SolidPattern">
+           <color alpha="255">
+            <red>32</red>
+            <green>35</green>
+            <blue>38</blue>
+           </color>
+          </brush>
+         </colorrole>
+        </disabled>
+       </palette>
+      </property>
      </widget>
     </item>
     <item row="1" column="0" colspan="2">
@@ -144,13 +190,13 @@
   <customwidget>
    <class>SpectrumGrapher</class>
    <extends>QWidget</extends>
-   <header>spectrumgrapher.h</header>
+   <header>widgets/spectrumgrapher.h</header>
    <container>1</container>
   </customwidget>
   <customwidget>
    <class>WaveformGrapher</class>
    <extends>QWidget</extends>
-   <header>waveformgrapher.h</header>
+   <header>widgets/waveformgrapher.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

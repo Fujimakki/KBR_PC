@@ -1,4 +1,5 @@
 #include "rxpacket.h"
+#include <cstdint>
 #include <qtypes.h>
 #include <utility>
 #include <zlib.h>
@@ -12,8 +13,11 @@ void RxPacket::findPacket(QByteArray &rxBuffer)
         rxBuffer.clear();
         return;
     }
-
-    this->type = header.second;
+    else
+    {
+        this->type = header.second;
+        rxBuffer.remove(0, header.first);
+    }
 
     quint16 packetSize;
     quint16 payloadSize;
@@ -38,11 +42,6 @@ void RxPacket::findPacket(QByteArray &rxBuffer)
         break;
     }
 
-    if(header.first > 0)
-    {
-        rxBuffer.remove(0, header.first);
-    }
-
     if (rxBuffer.size() < packetSize)
     {
         partedPacket = true;
@@ -50,19 +49,20 @@ void RxPacket::findPacket(QByteArray &rxBuffer)
     }
 
     payload = rxBuffer.mid(PACKET_HEADER_BYTES, payloadSize);
-    crc = rxBuffer.mid(PACKET_HEADER_BYTES + payloadSize, PACKET_CRC_BYTES);
+    memcpy(&crc, rxBuffer.data() + PACKET_HEADER_BYTES + payloadSize, PACKET_CRC_BYTES);
     rxBuffer.remove(0, packetSize);
 }
 
 bool RxPacket::checkCrc()
 {
-    if(payload.isEmpty() || crc.isEmpty())
+    if(payload.isEmpty())
     {
         return false;
     }
     else
     {
-        return calcCrc() == parseCrc();
+        uint32_t calculatedCrc = calcCrc();
+        return calculatedCrc == this->crc;
     }
 }
 
@@ -74,17 +74,6 @@ quint32 RxPacket::calcCrc()
     crcValue = crc32(crcValue, reinterpret_cast<const Bytef*>(payload.constData()), payload.size());
 
     return static_cast<quint32>(crcValue);
-}
-
-quint32 RxPacket::parseCrc()
-{
-    quint32 crcValue = 0;
-    for(quint8 i = 0; i < PACKET_CRC_BYTES; i++)
-    {
-        crcValue |= (static_cast<quint32>(static_cast<quint8>(crc[i]))) << (i << 3);
-    }
-
-    return crcValue;
 }
 
 QPair<qsizetype, RxPacket::PacketTypes> RxPacket::findHeader(const QByteArray &rxBuffer)

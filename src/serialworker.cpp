@@ -1,5 +1,7 @@
 #include "serialworker.h"
+
 #include "txpacket.h"
+
 #include <QDebug>
 #include <QThread>
 #include <qlogging.h>
@@ -86,18 +88,19 @@ void SerialWorker::processBuffer()
             continue;
         }
 
+        QByteArray payload = parser.getPayload();
         switch(parser.getType())
         {
             case RxPacket::AWS:
-                emit awsDataParsed(parser.getPayload());
+                emit awsDataParsed(payload);
                 break;
 
             case RxPacket::RAW:
-                emit rawDataParsed(parser.getPayload());
+                emit rawDataParsed(payload);
                 break;
 
             case RxPacket::FFT:
-                emit fftDataParsed(parser.getPayload());
+                emit fftDataParsed(payload);
                 break;
 
             default:

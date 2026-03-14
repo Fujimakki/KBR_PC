@@ -9,6 +9,7 @@
 #include <QElapsedTimer>
 #include <qlist.h>
 #include <qstringview.h>
+#include <qtypes.h>
 #include <qwidget.h>
 #include <vector>
 
@@ -65,18 +66,17 @@ private:
     QElapsedTimer fftRenderTimer;
 #endif // FPS_LOCK
 
-    static constexpr quint16 PORT_CMBB_UPD_TIMEOUT = 5000;    // Time in mseconds
-    static constexpr quint16 FRAME_UPDATE_TIMEOUT = 33;    // Time in mseconds
+    static constexpr qsizetype PORT_CMBB_UPD_TIMEOUT = 5000;    // Time in mseconds
+    static constexpr qsizetype FRAME_UPDATE_TIMEOUT = 33;    // Time in mseconds
 
-    static constexpr quint16 RAW_PAYLOAD_FLOATS = 4096;
-    static constexpr quint16 FFT_PAYLOAD_FLOATS = 2048;
+    static constexpr qsizetype RAW_PAYLOAD_U16 = 4096;
+    static constexpr qsizetype FFT_PAYLOAD_FLOATS = 2048;
 
     static constexpr qreal ADC_SAMPLE_RATE_HZ = 2.4e6;
 
     quint16 awsData;
-    std::vector<qreal> rawData;
+    std::vector<qreal> channel1;
+    std::vector<qreal> channel2;
     std::vector<qreal> fftData;
-
-    void setupGraph(PayloadType type);
 };
 #endif // MAINWINDOW_H

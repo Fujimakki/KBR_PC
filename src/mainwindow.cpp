@@ -1,19 +1,27 @@
 #include "mainwindow.h"
+
 #include "serialworker.h"
 #include "txpacket.h"
 #include "ui_mainwindow.h"
+
 #include <QDialog>
 #include <QMessageBox>
 #include <QSerialPortInfo>
+#include <cstdint>
+#include <cstring>
 #include <qtypes.h>
 
-MainWindow::MainWindow(QWidget *parent)
-    : QMainWindow(parent), ui(new Ui::MainWindow), sThread(new QThread(this)),
-    sWorker(new SerialWorker), portCmbBTimer(new QTimer(this))
+MainWindow::MainWindow(QWidget *parent) :
+    QMainWindow(parent),
+    ui(new Ui::MainWindow),
+    sThread(new QThread(this)),
+    sWorker(new SerialWorker(this)),
+    portCmbBTimer(new QTimer(this))
 {
     ui->setupUi(this);
 
-    rawData.resize(RAW_PAYLOAD_FLOATS);
+    channel1.resize(RAW_PAYLOAD_U16);
+    channel2.resize(RAW_PAYLOAD_U16);
     fftData.resize(FFT_PAYLOAD_FLOATS);
 
 #ifdef FPS_LOCK
@@ -22,11 +30,11 @@ MainWindow::MainWindow(QWidget *parent)
 #endif // FPS_LOCK
 
     sWorker->moveToThread(sThread);
+    connect(sThread, &QThread::finished, sWorker, &QObject::deleteLater);
+
     connect(portCmbBTimer, &QTimer::timeout, this, &MainWindow::checkPorts);
     portCmbBTimer->start(PORT_CMBB_UPD_TIMEOUT);
     connect(this, &MainWindow::portsChanged, this, &MainWindow::refreshPortList);
-
-    ui->spectrumGraph->setSampleRate(ADC_SAMPLE_RATE_HZ);
 
     connect(this, &MainWindow::connectToPort, sWorker, &SerialWorker::doConnect);
     connect(
@@ -36,8 +44,6 @@ MainWindow::MainWindow(QWidget *parent)
             emit connectToPort(this->ui->portCmbBox->currentText());
         }
     );
-    connect(ui->disconBtn, &QPushButton::clicked, sWorker, &SerialWorker::doDisconnect);
-
     connect(this, &MainWindow::sendMessage, sWorker, &SerialWorker::sendMessage);
     connect(
         ui->awsBtn,
@@ -47,6 +53,7 @@ MainWindow::MainWindow(QWidget *parent)
             emit sendMessage(TxPacket::AWS, awsData);
         }
     );
+    connect(ui->disconBtn, &QPushButton::clicked, sWorker, &SerialWorker::doDisconnect);
 
     connect(sWorker, &SerialWorker::crcError, this, &MainWindow::onCrcError);
     connect(sWorker, &SerialWorker::portError, this, &MainWindow::onPortError);
@@ -55,7 +62,8 @@ MainWindow::MainWindow(QWidget *parent)
     connect(sWorker, &SerialWorker::rawDataParsed, this, &MainWindow::rawDataReceived);
     connect(sWorker, &SerialWorker::fftDataParsed, this, &MainWindow::fftDataReceived);
 
-    connect(sThread, &QThread::finished, sWorker, &QObject::deleteLater);
+    ui->spectrumGraph->setMaxAxes(QPair<qreal, qreal>(2400, 4.4));
+    ui->waveformGraph->setMaxAxes(QPair<qreal, qreal>(4096, 4.4));
 
     sThread->start();
 }
@@ -66,12 +74,14 @@ MainWindow::~MainWindow() {
     if (sThread->isRunning()) {
         sThread->quit();
         sThread->wait(1000);
-    }    
+    }
 }
 
 void MainWindow::awsDataReceived(const QByteArray &barr_payload) {
-    memcpy(&awsData, barr_payload.constData(), sizeof(quint16));
-    setupGraph(PayloadType::AWS);
+    // memcpy(&awsData, barr_payload.constData(), sizeof(quint16));
+
+    QMessageBox::information(this, "AWS", "Averaging window size is successfully set");
+    qDebug() << "Averaging window size is successfully set.";
 }
 
 void MainWindow::fftDataReceived(const QByteArray &barr_payload) {
@@ -90,7 +100,7 @@ void MainWindow::fftDataReceived(const QByteArray &barr_payload) {
         fftData[i] = value;
     }
 
-    setupGraph(FFT);
+    ui->spectrumGraph->setAmplitudes(fftData);
 }
 
 void MainWindow::rawDataReceived(const QByteArray &barr_payload) {
@@ -101,53 +111,26 @@ void MainWindow::rawDataReceived(const QByteArray &barr_payload) {
     rawRenderTimer.restart();
 #endif // FPS_LOCK
 
-    const char *payload = barr_payload.constData();
+    const char *payload = barr_payload.data();
 
-    for (quint16 i = 0; i < RAW_PAYLOAD_FLOATS; i++) {
-        float value;
-        memcpy(&value, &payload[i * sizeof(float)], sizeof(float));
-        rawData[i] = value;
+    for (quint16 i = 0; i < RAW_PAYLOAD_U16; i++)
+    {
+        uint16_t value;
+
+        memcpy(&value, &payload[(i << 1) * sizeof(value)], sizeof(value));
+        channel1[i] = static_cast<qreal>(value) / ((1 << 12) - 1) * 3.3;
+
+        memcpy(&value, &payload[((i << 1) + 1) * sizeof(value)], sizeof(value));
+        channel2[i] = static_cast<qreal>(value) / ((1 << 12) - 1) * 3.3;
     }
 
-    setupGraph(PayloadType::RAW);
+    ui->waveformGraph->addPoints(channel1);
 }
 
 void MainWindow::onCrcError() { qDebug() << "CRC Error reported to GUI"; }
 
 void MainWindow::onPortError(const QString &error) {
     QMessageBox::critical(this, "Serial Port Error", error);
-}
-
-void MainWindow::setupGraph(PayloadType type) {
-    switch (type)
-    {
-        case PayloadType::AWS:
-        {
-            QMessageBox::information(this, "AWS",
-                                    "Averaging window size is successfully set");
-            qDebug() << "Averaging window size is successfully set.";
-            break;
-        }
-
-        case PayloadType::RAW:
-        {
-            // qDebug() << "waveformGraph is updated.";
-            ui->waveformGraph->addPoints(rawData);
-            break;
-        }
-
-        case PayloadType::FFT:
-        {
-            // qDebug() << "spectrumGraph is updated.";
-            ui->spectrumGraph->setAmplitudes(fftData);
-            break;
-        }
-
-        default:
-        {
-            break;
-        }
-    }
 }
 
 void MainWindow::checkPorts() {

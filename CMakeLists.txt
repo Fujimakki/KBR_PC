@@ -11,6 +11,7 @@ find_package(ZLIB REQUIRED)
 qt_standard_project_setup()
 
 file(GLOB_RECURSE srcs
+    main.cpp
     src/*.cpp
     src/*.hpp
     src/*.h
@@ -55,4 +56,4 @@ qt_generate_deploy_app_script(
 install(SCRIPT ${deploy_script})
 
 
-add_compile_definitions(FPS_LOCK)
+#add_compile_definitions(FPS_LOCK)
