@@ -5,7 +5,6 @@
 #include <QDebug>
 #include <QThread>
 #include <qlogging.h>
-#include <qmessagebox.h>
 #include <qstringview.h>
 #include <QMessageBox>
 
