@@ -1,7 +1,5 @@
 #include "mainwindow.h"
 
-#include "serialworker.h"
-#include "txpacket.h"
 #include "ui_mainwindow.h"
 
 #include <QDialog>
@@ -9,20 +7,23 @@
 #include <QSerialPortInfo>
 #include <cstdint>
 #include <cstring>
+#include <qmargins.h>
+#include <qnamespace.h>
+#include <qpoint.h>
 #include <qtypes.h>
 
-MainWindow::MainWindow(QWidget *parent) :
-    QMainWindow(parent),
-    ui(new Ui::MainWindow),
-    sThread(new QThread(this)),
-    sWorker(new SerialWorker(this)),
-    portCmbBTimer(new QTimer(this))
+MainWindow::MainWindow(QWidget *parent)
+    : QMainWindow(parent)
+    , ui(new Ui::MainWindow)
+    , sThread(new QThread(this))
+    , sWorker(new SerialWorker(this))
+    , portCmbBTimer(new QTimer(this))
+    , channel0(new WaveformSeries(nullptr))
+    , channel1(new WaveformSeries(nullptr))
+    , fftData0(new SpectrumSeries(nullptr))
+    , fftData1(new SpectrumSeries(nullptr))
 {
     ui->setupUi(this);
-
-    channel1.resize(RAW_PAYLOAD_U16);
-    channel2.resize(RAW_PAYLOAD_U16);
-    fftData.resize(FFT_PAYLOAD_FLOATS);
 
 #ifdef FPS_LOCK
     rawRenderTimer.start();
@@ -62,8 +63,21 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(sWorker, &SerialWorker::rawDataParsed, this, &MainWindow::rawDataReceived);
     connect(sWorker, &SerialWorker::fftDataParsed, this, &MainWindow::fftDataReceived);
 
-    ui->spectrumGraph->setMaxAxes(QPair<qreal, qreal>(2400, 4.4));
-    ui->waveformGraph->setMaxAxes(QPair<qreal, qreal>(4096, 4.4));
+    fftData0->setAxesMax(QPointF(1200, 4.4));
+    fftData1->setAxesMax(QPointF(1200, 4.4));
+    fftData1->setPen(QPen(Qt::red, 1));
+
+    ui->spectrumGraph->setMargins(marginsGraph);
+    ui->spectrumGraph->addSeries(fftData0);
+    ui->spectrumGraph->addSeries(fftData1);
+
+    channel0->setAxesMax(QPointF(4096, 4.4));
+    channel1->setAxesMax(QPointF(4096, 4.4));
+    channel1->setPen(QPen(Qt::red));
+
+    ui->waveformGraph->setMargins(marginsGraph);
+    ui->waveformGraph->addSeries(channel0);
+    ui->waveformGraph->addSeries(channel1);
 
     sThread->start();
 }
@@ -78,7 +92,6 @@ MainWindow::~MainWindow() {
 }
 
 void MainWindow::awsDataReceived(const QByteArray &barr_payload) {
-    // memcpy(&awsData, barr_payload.constData(), sizeof(quint16));
 
     QMessageBox::information(this, "AWS", "Averaging window size is successfully set");
     qDebug() << "Averaging window size is successfully set.";
@@ -93,14 +106,22 @@ void MainWindow::fftDataReceived(const QByteArray &barr_payload) {
 #endif // FPS_LOCK
 
     const char *payload = barr_payload.constData();
+    QList<qreal>val0(FFT_PAYLOAD_FLOATS);
+    QList<qreal>val1(FFT_PAYLOAD_FLOATS);
 
-    for (quint16 i = 0; i < FFT_PAYLOAD_FLOATS; i++) {
-        float value;
-        memcpy(&value, &payload[i * sizeof(float)], sizeof(float));
-        fftData[i] = value;
+    for (quint16 i = 0; i < FFT_PAYLOAD_FLOATS; i++)
+    {
+        float val;
+
+        memcpy(&val, &payload[i * sizeof(val)], sizeof(val));
+        val0[i] = val;
+
+        memcpy(&val, &payload[(FFT_PAYLOAD_FLOATS + i) * sizeof(val)], sizeof(val));
+        val1[i] = val;
     }
 
-    ui->spectrumGraph->setAmplitudes(fftData);
+    fftData0->setValues(val0);
+    fftData1->setValues(val1);
 }
 
 void MainWindow::rawDataReceived(const QByteArray &barr_payload) {
@@ -112,22 +133,25 @@ void MainWindow::rawDataReceived(const QByteArray &barr_payload) {
 #endif // FPS_LOCK
 
     const char *payload = barr_payload.data();
+    QList<qreal>val0(RAW_PAYLOAD_U16);
+    QList<qreal>val1(RAW_PAYLOAD_U16);
 
     for (quint16 i = 0; i < RAW_PAYLOAD_U16; i++)
     {
         uint16_t value;
 
         memcpy(&value, &payload[(i << 1) * sizeof(value)], sizeof(value));
-        channel1[i] = static_cast<qreal>(value) / ((1 << 12) - 1) * 3.3;
+        val0[i] = static_cast<qreal>(value) / ((1 << 12) - 1) * 3.3;
 
         memcpy(&value, &payload[((i << 1) + 1) * sizeof(value)], sizeof(value));
-        channel2[i] = static_cast<qreal>(value) / ((1 << 12) - 1) * 3.3;
+        val1[i] = static_cast<qreal>(value) / ((1 << 12) - 1) * 3.3;
     }
 
-    ui->waveformGraph->addPoints(channel1);
+    channel0->setValues(val0);
+    channel1->setValues(val1);
 }
 
-void MainWindow::onCrcError() { qDebug() << "CRC Error reported to GUI"; }
+void MainWindow::onCrcError(const QString &type) { qDebug() << type << ":CRC Error reported to GUI"; }
 
 void MainWindow::onPortError(const QString &error) {
     QMessageBox::critical(this, "Serial Port Error", error);

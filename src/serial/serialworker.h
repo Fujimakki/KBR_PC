@@ -19,7 +19,7 @@ public:
     explicit SerialWorker(QObject *parent = nullptr);
 
 signals:
-    void crcError();
+    void crcError(QString typePacket);
     void typeError(const RxPacket::PacketTypes);
     void portError(const QString &error);
     void writeError();
@@ -44,7 +44,7 @@ private:
     QByteArray rxBuffer;
 
     static constexpr quint32 PORT_BAUD_RATE = 2250000;    // The value is set on NUCLEO-F446RE
-    static constexpr quint16 PORT_BUF_SIZE = 65535;
+    static constexpr quint64 PORT_BUF_SIZE = 0;
 
 
     const QByteArray AWS_PACKET_HEADER = QByteArray::fromHex("AA31");

@@ -1,142 +1,128 @@
-#include "widgets/grapher.h"
-#include <qcontainerfwd.h>
+#include "grapher.h"
+
+#include <QVBoxLayout>
+#include <QFont>
+#include <qmargins.h>
 #include <qpoint.h>
 #include <qtypes.h>
-#include <qwidget.h>
 
 Grapher::Grapher(QWidget *parent)
-    : QWidget{parent}
+    : QWidget(parent)
+    , m_grid(new GrapherGrid(this))
 {
-    setAttribute(Qt::WA_OpaquePaintEvent);
+    setBackgroundRole(QPalette::Window);
+    setAutoFillBackground(true);
 
-    QFont f = QFont("Adwaita Mono", 8);
-    setFont(f);
+    setGridCellsCount(QPoint(4, 4));
+    m_margins = QMargins(0, 0, 0, 0);
 
-    setMaxAxes(QPair<qreal, qreal>(1.0, 1.0));
-    setGridCells(QPair<qsizetype, qsizetype>(4, 4));
-    setMargins(QRectF(QPointF(40.0, 20.0), QPointF(20.0, 20.0)));
-    setPointsCount(100);
+    QVBoxLayout *layoutMain = new QVBoxLayout(this);
+    m_layoutStack = new QStackedLayout(layoutMain);
+
+    m_layoutStack->setStackingMode(QStackedLayout::StackAll);
+    m_layoutStack->addWidget(m_grid);
 }
 
-void Grapher::drawFrame(QPainter *painter)
+void Grapher::setMargins(QMargins margins)
 {
-    painter->drawLine(QLineF(   // Left border
-                margins.left(),
-                margins.top(),
-                margins.left(),
-                height() - margins.bottom()
-                ));
+    if(auto layout = this->layout())
+    {
+        layout->setContentsMargins(margins);
+        m_margins = margins;
+    }
+}
 
-    painter->drawLine(QLineF(   // Top border
-                margins.left(),
-                margins.top(),
-                width() - margins.right(),
-                margins.top()
-                ));
+void Grapher::setGridCellsCount(QPoint cellsCount)
+{
+    m_cellsCount = cellsCount;
+    m_grid->setGridCells(cellsCount);
+}
 
-    painter->drawLine(QLineF(   // Right border
-                width() - margins.right(),
-                margins.top(),
-                width() - margins.right(),
-                height() - margins.bottom()
-                ));
+void Grapher::addSeries(Series *series)
+{
+    if(!series)
+    {
+        return;
+    }
 
-    painter->drawLine(QLineF(   // Bottom border
-                margins.left(),
-                height() - margins.bottom(),
-                width() - margins.right(),
-                height() - margins.bottom()
-                ));
+    series->setParent(this);
+    m_series.append(series);
+    m_layoutStack->addWidget(series);
 
-    painter->setPen(penSubGrid);
-    QPair<qreal, qreal> subGridStep(
-            W_GRID / static_cast<qreal>(countGridCells.first) / 5,
-            H_GRID / static_cast<qreal>(countGridCells.second) / 5
+    updateAxes();
+}
+
+void Grapher::updateAxes()
+{
+    m_axesVal = QPointF(0,0);
+    for(auto &item : m_series)
+    {
+        qreal itemAxesX = item->getAxesMax().x();
+        qreal itemAxesY = item->getAxesMax().y();
+
+        if(itemAxesX > m_axesVal.x())
+        {
+            m_axesVal.setX(itemAxesX);
+        }
+        if(itemAxesY > m_axesVal.y())
+        {
+            m_axesVal.setY(itemAxesY);
+        }
+    }
+
+    this->update();
+}
+
+void Grapher::printAxes(QPainter *painter)
+{
+    QPointF cellStep = QPointF(
+            static_cast<qreal>(m_grid->width()) / m_cellsCount.x(),
+            static_cast<qreal>(m_grid->height()) / m_cellsCount.y()
             );
-    for(qsizetype i = 1; i < countGridCells.first * 5; i++)
+    QPointF valStep = QPointF(
+            m_axesVal.x() / m_cellsCount.x(),
+            m_axesVal.y() / m_cellsCount.y()
+            );
+    auto fontMetrics = painter->fontMetrics();
+
+    for(qsizetype i = 0; i <= m_axesVal.x(); i++)
     {
-        painter->drawLine(QLineF(
-                    margins.left() + i * subGridStep.first,
-                    height() - margins.bottom() - 3,
-                    margins.left() + i * subGridStep.first,
-                    height() - margins.bottom() + 3
-                    ));
+        QString text = QString::number(valStep.x() * i, 'f', 1);
+
+        QPointF sizeText = QPointF(
+                static_cast<qreal>(fontMetrics.horizontalAdvance(text)),
+                static_cast<qreal>(fontMetrics.xHeight())
+                );
+
+        QPointF posText = QPointF(
+                cellStep.x() * i + m_margins.left() - sizeText.x() / 2.0,
+                m_margins.bottom() > sizeText.y() ? static_cast<qreal>(height()) - (m_margins.bottom() - sizeText.y()) / 2.0 : height() - 1
+                );
+
+        painter->drawText(posText, text);
     }
-    for(qsizetype i = 1; i < countGridCells.second * 5; i++)
+    for(qsizetype i = 0; i <= m_axesVal.y(); i++)
     {
-        painter->drawLine(QLineF(
-                    margins.left() - 3,
-                    height() - margins.bottom() - i * subGridStep.second,
-                    margins.left() + 3,
-                    height() - margins.bottom() - i * subGridStep.second
-                    ));
+        QString text = QString::number(valStep.y() * i, 'f', 1);
+
+        QPointF sizeText = QPointF(
+                fontMetrics.horizontalAdvance(text),
+                fontMetrics.xHeight()
+                );
+
+        QPointF posText = QPointF(
+                m_margins.left() > sizeText.x() ? (m_margins.left() - sizeText.x()) / 2.0 : sizeText.x() / 2.0,
+                static_cast<qreal>(height()) - (cellStep.y() * i + m_margins.bottom()) + sizeText.y() / 2.0
+                );
+
+        painter->drawText(posText, text);
     }
 }
 
-void Grapher::drawXGridLines(QPainter* painter)
+void Grapher::paintEvent(QPaintEvent* event)
 {
-    const qreal cellWidth = W_GRID / static_cast<qreal>(countGridCells.first);
-    for(qsizetype i = 1; i < countGridCells.first; i++)
-    {
-        qreal x = margins.left() + i * cellWidth;
+    QPainter painter(this);
+    painter.setFont(QFont("Adwaita Mono", 8));
 
-        painter->setPen(penGrid);
-        painter->drawLine(QLineF(
-                    x,
-                    margins.top(),
-                    x,
-                    height() - margins.bottom()
-                    ));
-    }
+    printAxes(&painter);
 }
-
-void Grapher::drawYGridLines(QPainter* painter)
-{
-    const qreal cellHeight = H_GRID / static_cast<qreal>(countGridCells.second);
-
-    for(qsizetype i = 1; i < countGridCells.second; i++)
-    {
-        qreal y = margins.top() + i * cellHeight;
-        painter->drawLine(QLineF(
-                    margins.left(),
-                    y,
-                    width() - margins.right(),
-                    y
-                    ));
-    }
-}
-
-void Grapher::drawGridText(QPainter *painter)
-{
-    for(qsizetype i = 0; i <= countGridCells.first; i++)
-    {
-        qreal ratio = static_cast<qreal>(i) / countGridCells.first;
-        qreal posX = margins.left() + ratio * W_GRID;
-
-        qreal value = ratio * axesVal.first;
-        printText(painter, QString::number(value), QPointF(posX, 0.0));
-    }
-
-    for(qsizetype i = 0; i <= countGridCells.second; i++)
-    {
-        qreal ratio = static_cast<qreal>(i) / countGridCells.second;
-        qreal posY = height() - (margins.bottom() + ratio * H_GRID);
-
-        qreal value = ratio * axesVal.second;
-        printText(painter, QString::number(value), QPointF(0.0, posY));
-    }
-}
-
-void Grapher::drawGrid(QPainter *painter)
-{
-    painter->setPen(penFrame);
-    drawFrame(painter);
-
-    painter->setPen(penGrid);
-    drawXGridLines(painter);
-    drawYGridLines(painter);
-
-    painter->setPen(penText);
-    drawGridText(painter);
-}
-

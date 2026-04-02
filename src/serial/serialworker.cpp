@@ -1,11 +1,11 @@
 #include "serialworker.h"
 
+#include "rxpacket.h"
 #include "txpacket.h"
 
 #include <QDebug>
 #include <QThread>
 #include <qlogging.h>
-#include <qmessagebox.h>
 #include <qstringview.h>
 #include <QMessageBox>
 
@@ -84,7 +84,23 @@ void SerialWorker::processBuffer()
 
         if(parser.isBadPacket())
         {
-            emit crcError();
+            QString type;
+            switch(parser.getType())
+            {
+            case RxPacket::NONE:
+                type = "NONE";
+                break;
+            case RxPacket::RAW:
+                type = "RAW";
+                break;
+            case RxPacket::FFT:
+                type = "FFT";
+                break;
+            case RxPacket::AWS:
+                type = "AWS";
+                break;
+            }
+            emit crcError(type);
             continue;
         }
 

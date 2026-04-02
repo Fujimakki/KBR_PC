@@ -31,8 +31,8 @@ public:
     static constexpr qsizetype RX_RAW_PAYLOAD_BYTES = 16384;  // = FFT_SIZE * 2 * sizeof(uint16_t) = 4096 * 2 * 2
     static constexpr qsizetype RX_RAW_PACKET_BYTES = 16390;   // = PACKET_HEADER_BYTES + RX_RAW_PAYLOAD_BYTES + PACKET_CRC_BYTES
 
-    static constexpr qsizetype RX_FFT_PAYLOAD_BYTES = 8192;  // = FFT_SIZE / 2 * sizeof(flaot32_t) = 4096 / 2 * 4
-    static constexpr qsizetype RX_FFT_PACKET_BYTES = 8198;   // = PACKET_HEADER_BYTES + RX_FFT_PAYLOAD_BYTES + PACKET_CRC_BYTES
+    static constexpr qsizetype RX_FFT_PAYLOAD_BYTES = 16384;  // = FFT_SIZE / 2 * 2 * sizeof(flaot32_t) = 4096 * 4
+    static constexpr qsizetype RX_FFT_PACKET_BYTES = 16390;   // = PACKET_HEADER_BYTES + RX_FFT_PAYLOAD_BYTES + PACKET_CRC_BYTES
 
     inline RxPacket()
     {
@@ -49,7 +49,7 @@ public:
     inline bool isPartedPacket() { return this->partedPacket; }
 
     inline QByteArray getPayload() { return payload; }
-    inline PacketTypes getType() { return this->type; }
+    inline PacketTypes getType() const { return this->type; }
 
 private:
     PacketTypes type;

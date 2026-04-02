@@ -3,18 +3,13 @@
 
 #include <QMainWindow>
 #include <QThread>
-#include <QLineSeries>
-#include <QChart>
 #include <QTimer>
 #include <QElapsedTimer>
-#include <qlist.h>
-#include <qstringview.h>
-#include <qtypes.h>
-#include <qwidget.h>
-#include <vector>
+#include <qmargins.h>
 
 #include "serialworker.h"
-#include "txpacket.h"
+#include "waveformseries.h"
+#include "spectrumseries.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -41,7 +36,7 @@ private slots:
     void awsDataReceived(const QByteArray &barr_payload);
     void fftDataReceived(const QByteArray &barr_payload);
     void rawDataReceived(const QByteArray &barr_payload);
-    void onCrcError();
+    void onCrcError(const QString &type);
     void onPortError(const QString &error);
     void checkPorts();
     void refreshPortList(const QList<QSerialPortInfo> &ports);
@@ -75,8 +70,10 @@ private:
     static constexpr qreal ADC_SAMPLE_RATE_HZ = 2.4e6;
 
     quint16 awsData;
-    std::vector<qreal> channel1;
-    std::vector<qreal> channel2;
-    std::vector<qreal> fftData;
+    WaveformSeries *channel0 = nullptr;
+    WaveformSeries *channel1 = nullptr;
+    SpectrumSeries *fftData0 = nullptr;
+    SpectrumSeries *fftData1 = nullptr;
+    QMargins marginsGraph = QMargins(35,20,20,20);
 };
 #endif // MAINWINDOW_H
