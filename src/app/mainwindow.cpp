@@ -20,7 +20,8 @@ MainWindow::MainWindow(QWidget *parent)
     , portCmbBTimer(new QTimer(this))
     , channel0(new WaveformSeries(nullptr))
     , channel1(new WaveformSeries(nullptr))
-    , fftData(new SpectrumSeries(nullptr))
+    , fftData0(new SpectrumSeries(nullptr))
+    , fftData1(new SpectrumSeries(nullptr))
 {
     ui->setupUi(this);
 
@@ -62,9 +63,13 @@ MainWindow::MainWindow(QWidget *parent)
     connect(sWorker, &SerialWorker::rawDataParsed, this, &MainWindow::rawDataReceived);
     connect(sWorker, &SerialWorker::fftDataParsed, this, &MainWindow::fftDataReceived);
 
-    fftData->setAxesMax(QPointF(1200, 4.4));
+    fftData0->setAxesMax(QPointF(1200, 4.4));
+    fftData1->setAxesMax(QPointF(1200, 4.4));
+    fftData1->setPen(QPen(Qt::red, 1));
+
     ui->spectrumGraph->setMargins(marginsGraph);
-    ui->spectrumGraph->addSeries(fftData);
+    ui->spectrumGraph->addSeries(fftData0);
+    ui->spectrumGraph->addSeries(fftData1);
 
     channel0->setAxesMax(QPointF(4096, 4.4));
     channel1->setAxesMax(QPointF(4096, 4.4));
@@ -101,16 +106,22 @@ void MainWindow::fftDataReceived(const QByteArray &barr_payload) {
 #endif // FPS_LOCK
 
     const char *payload = barr_payload.constData();
-    QList<qreal>values(FFT_PAYLOAD_FLOATS);
+    QList<qreal>val0(FFT_PAYLOAD_FLOATS);
+    QList<qreal>val1(FFT_PAYLOAD_FLOATS);
 
     for (quint16 i = 0; i < FFT_PAYLOAD_FLOATS; i++)
     {
         float val;
+
         memcpy(&val, &payload[i * sizeof(val)], sizeof(val));
-        values[i] = val;
+        val0[i] = val;
+
+        memcpy(&val, &payload[(FFT_PAYLOAD_FLOATS + i) * sizeof(val)], sizeof(val));
+        val1[i] = val;
     }
 
-    fftData->setValues(values);
+    fftData0->setValues(val0);
+    fftData1->setValues(val1);
 }
 
 void MainWindow::rawDataReceived(const QByteArray &barr_payload) {
@@ -140,7 +151,7 @@ void MainWindow::rawDataReceived(const QByteArray &barr_payload) {
     channel1->setValues(val1);
 }
 
-void MainWindow::onCrcError() { qDebug() << "CRC Error reported to GUI"; }
+void MainWindow::onCrcError(const QString &type) { qDebug() << type << ":CRC Error reported to GUI"; }
 
 void MainWindow::onPortError(const QString &error) {
     QMessageBox::critical(this, "Serial Port Error", error);

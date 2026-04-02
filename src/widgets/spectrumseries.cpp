@@ -12,10 +12,16 @@ void SpectrumSeries::setValues(QList<qreal> &values)
 
     m_series.clear();
     m_series.reserve(values.size());
+
+    qreal wWidth = static_cast<qreal>(this->width());
+    qreal wHeight = static_cast<qreal>(this->height()) - 1;
+
     for(qsizetype i = 1; i < values.size(); i++)
     {
-        qreal xPos = (static_cast<qreal>(width() * i) / values.size());
-        qreal yPos = qMax(0.0, static_cast<qreal>(height()) * (1 - values[i] / m_axesVal.y()));
+        qreal value = values[i];
+
+        qreal xPos = (wWidth * i / values.size());
+        qreal yPos = qMax(0.0, wHeight * (1 - value / m_axesVal.y()));
 
         m_series.append(QLineF(xPos, yPos, xPos, height() - 1));
     }

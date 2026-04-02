@@ -36,7 +36,7 @@ private slots:
     void awsDataReceived(const QByteArray &barr_payload);
     void fftDataReceived(const QByteArray &barr_payload);
     void rawDataReceived(const QByteArray &barr_payload);
-    void onCrcError();
+    void onCrcError(const QString &type);
     void onPortError(const QString &error);
     void checkPorts();
     void refreshPortList(const QList<QSerialPortInfo> &ports);
@@ -72,7 +72,8 @@ private:
     quint16 awsData;
     WaveformSeries *channel0 = nullptr;
     WaveformSeries *channel1 = nullptr;
-    SpectrumSeries *fftData = nullptr;
+    SpectrumSeries *fftData0 = nullptr;
+    SpectrumSeries *fftData1 = nullptr;
     QMargins marginsGraph = QMargins(35,20,20,20);
 };
 #endif // MAINWINDOW_H
