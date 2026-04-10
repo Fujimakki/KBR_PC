@@ -79,6 +79,7 @@ MainWindow::MainWindow(QWidget *parent)
     ui->waveformGraph->addSeries(channel0);
     ui->waveformGraph->addSeries(channel1);
 
+    checkPorts();
     sThread->start();
 }
 

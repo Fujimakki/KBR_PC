@@ -15,9 +15,9 @@ void WaveformSeries::setValues(QList<qreal> &values)
             static_cast<qreal>(width()) - 1.0,
             qMax(0.0, static_cast<qreal>(height()) * (1 - values[0] / m_axesVal.y()))
             );
-    for(qsizetype i = 1; i < values.size(); i++)
+    for(qsizetype i = 0; i < values.size(); i++)
     {
-        qreal xPos = (static_cast<qreal>(width()) - 1.0) * (1.0 - static_cast<qreal>(i) / values.size());
+        qreal xPos = 1.0 + (static_cast<qreal>(width()) - 2.0) * (1.0 - static_cast<qreal>(i) / values.size());
         qreal yPos = qMax(0.0, static_cast<qreal>(height()) * (1 - values[i] / m_axesVal.y()));
 
         m_series.lineTo(xPos, yPos);
