@@ -19,7 +19,7 @@ public:
 
     virtual ~Series() = default;
 
-    virtual void setValues(QList<qreal> &values) = 0;
+    virtual void setValues(QList<float> &values) = 0;
     virtual inline void setAxesMax(QPointF maxAxes)
     {
         m_axesVal = maxAxes;

@@ -6,6 +6,7 @@
 #include <QTimer>
 #include <QElapsedTimer>
 #include <qmargins.h>
+#include <qtypes.h>
 
 #include "serialworker.h"
 #include "waveformseries.h"
@@ -59,15 +60,13 @@ private:
 #ifdef FPS_LOCK
     QElapsedTimer rawRenderTimer;
     QElapsedTimer fftRenderTimer;
+    static constexpr qsizetype FRAME_UPDATE_TIMEOUT = 33;    // Time in mseconds
 #endif // FPS_LOCK
 
     static constexpr qsizetype PORT_CMBB_UPD_TIMEOUT = 5000;    // Time in mseconds
-    static constexpr qsizetype FRAME_UPDATE_TIMEOUT = 33;    // Time in mseconds
-
-    static constexpr qsizetype RAW_PAYLOAD_U16 = 4096;
-    static constexpr qsizetype FFT_PAYLOAD_FLOATS = 2048;
 
     static constexpr qreal ADC_SAMPLE_RATE_HZ = 2.4e6;
+    const qreal ADC_QUANT_STEP_V = 3.3 / 4095.0;
 
     quint16 awsData;
     WaveformSeries *channel0 = nullptr;

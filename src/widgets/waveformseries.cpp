@@ -3,7 +3,7 @@
 #include <QPen>
 #include <QPainter>
 
-void WaveformSeries::setValues(QList<qreal> &values)
+void WaveformSeries::setValues(QList<float> &values)
 {
     if(values.isEmpty())
     {

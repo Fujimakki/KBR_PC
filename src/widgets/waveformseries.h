@@ -12,7 +12,7 @@ public:
     WaveformSeries(QWidget *parent = nullptr) : Series(parent) {}
     ~WaveformSeries() = default;
 
-    void setValues(QList<qreal> &values) override;
+    void setValues(QList<float> &values) override;
 
 protected:
     void paintEvent(QPaintEvent *event) override;

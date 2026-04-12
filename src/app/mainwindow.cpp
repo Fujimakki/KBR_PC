@@ -5,12 +5,8 @@
 #include <QDialog>
 #include <QMessageBox>
 #include <QSerialPortInfo>
-#include <cstdint>
 #include <cstring>
-#include <qmargins.h>
-#include <qnamespace.h>
-#include <qpoint.h>
-#include <qtypes.h>
+#include <qobject.h>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -98,7 +94,7 @@ void MainWindow::awsDataReceived(const QByteArray &barr_payload) {
     qDebug() << "Averaging window size is successfully set.";
 }
 
-void MainWindow::fftDataReceived(const QByteArray &barr_payload) {
+void MainWindow::fftDataReceived(const QByteArray &payload) {
 #ifdef FPS_LOCK
     if (fftRenderTimer.elapsed() < FRAME_UPDATE_TIMEOUT) {
         return;
@@ -106,26 +102,19 @@ void MainWindow::fftDataReceived(const QByteArray &barr_payload) {
     fftRenderTimer.restart();
 #endif // FPS_LOCK
 
-    const char *payload = barr_payload.constData();
-    QList<qreal>val0(FFT_PAYLOAD_FLOATS);
-    QList<qreal>val1(FFT_PAYLOAD_FLOATS);
+    const qsizetype pldByteHalfSize = payload.size() >> 1;
+    const qsizetype pldFHalfSize = pldByteHalfSize >> 2;
+    QList<float>val0(pldFHalfSize);
+    QList<float>val1(pldFHalfSize);
 
-    for (quint16 i = 0; i < FFT_PAYLOAD_FLOATS; i++)
-    {
-        float val;
-
-        memcpy(&val, &payload[i * sizeof(val)], sizeof(val));
-        val0[i] = val;
-
-        memcpy(&val, &payload[(FFT_PAYLOAD_FLOATS + i) * sizeof(val)], sizeof(val));
-        val1[i] = val;
-    }
+    memcpy(val0.data(), payload.constData(), pldByteHalfSize);
+    memcpy(val1.data(), payload.constData() + pldByteHalfSize, pldByteHalfSize);
 
     fftData0->setValues(val0);
     fftData1->setValues(val1);
 }
 
-void MainWindow::rawDataReceived(const QByteArray &barr_payload) {
+void MainWindow::rawDataReceived(const QByteArray &payload) {
 #ifdef FPS_LOCK
     if (rawRenderTimer.elapsed() < FRAME_UPDATE_TIMEOUT) {
         return;
@@ -133,19 +122,21 @@ void MainWindow::rawDataReceived(const QByteArray &barr_payload) {
     rawRenderTimer.restart();
 #endif // FPS_LOCK
 
-    const char *payload = barr_payload.data();
-    QList<qreal>val0(RAW_PAYLOAD_U16);
-    QList<qreal>val1(RAW_PAYLOAD_U16);
+    QDataStream pldStream(payload);
+    pldStream.setByteOrder(QDataStream::LittleEndian);
 
-    for (quint16 i = 0; i < RAW_PAYLOAD_U16; i++)
+    const qsizetype pldU16HalfSize = payload.size() >> 2;
+
+    QList<float>val0(pldU16HalfSize);
+    QList<float>val1(pldU16HalfSize);
+
+    for (qsizetype i = 0; i < pldU16HalfSize; i++)
     {
-        uint16_t value;
+        quint32 cpyBuf;
+        pldStream >> cpyBuf;
 
-        memcpy(&value, &payload[(i << 1) * sizeof(value)], sizeof(value));
-        val0[i] = static_cast<qreal>(value) / ((1 << 12) - 1) * 3.3;
-
-        memcpy(&value, &payload[((i << 1) + 1) * sizeof(value)], sizeof(value));
-        val1[i] = static_cast<qreal>(value) / ((1 << 12) - 1) * 3.3;
+        val0[i] = static_cast<float>(cpyBuf & 0xFFFF) * ADC_QUANT_STEP_V;
+        val1[i] = static_cast<float>(cpyBuf >> 16) * ADC_QUANT_STEP_V;
     }
 
     channel0->setValues(val0);

@@ -3,7 +3,7 @@
 #include <QPainter>
 #include <QPen>
 
-void SpectrumSeries::setValues(QList<qreal> &values)
+void SpectrumSeries::setValues(QList<float> &values)
 {
     if(values.isEmpty())
     {
