@@ -1,10 +1,10 @@
 #include "grapher.h"
+#include "series.h"
 
 #include <QVBoxLayout>
 #include <QFont>
-#include <qmargins.h>
+#include <QWheelEvent>
 #include <qpoint.h>
-#include <qtypes.h>
 
 Grapher::Grapher(QWidget *parent)
     : QWidget(parent)
@@ -16,8 +16,10 @@ Grapher::Grapher(QWidget *parent)
     setGridCellsCount(QPoint(4, 4));
     m_margins = QMargins(0, 0, 0, 0);
 
-    QVBoxLayout *layoutMain = new QVBoxLayout(this);
-    m_layoutStack = new QStackedLayout(layoutMain);
+    m_maxAxesVal = QPointF(0,0);
+    m_partOfAxesVal = 1.0;
+
+    m_layoutStack = new QStackedLayout(new QVBoxLayout(this));
 
     m_layoutStack->setStackingMode(QStackedLayout::StackAll);
     m_layoutStack->addWidget(m_grid);
@@ -48,25 +50,26 @@ void Grapher::addSeries(Series *series)
     series->setParent(this);
     m_series.append(series);
     m_layoutStack->addWidget(series);
+    connect(this, &Grapher::chgedPartOfAxesVal, series, &Series::updPartOfAxesVal);
 
-    updateAxes();
+    updAxes();
 }
 
-void Grapher::updateAxes()
+void Grapher::updAxes()
 {
-    m_axesVal = QPointF(0,0);
+    m_maxAxesVal = QPointF(0,0);
     for(auto &item : m_series)
     {
         qreal itemAxesX = item->getAxesMax().x();
         qreal itemAxesY = item->getAxesMax().y();
 
-        if(itemAxesX > m_axesVal.x())
+        if(itemAxesX > m_maxAxesVal.x())
         {
-            m_axesVal.setX(itemAxesX);
+            m_maxAxesVal.setX(itemAxesX);
         }
-        if(itemAxesY > m_axesVal.y())
+        if(itemAxesY > m_maxAxesVal.y())
         {
-            m_axesVal.setY(itemAxesY);
+            m_maxAxesVal.setY(itemAxesY);
         }
     }
 
@@ -75,42 +78,44 @@ void Grapher::updateAxes()
 
 void Grapher::printAxes(QPainter *painter)
 {
-    QPointF cellStep = QPointF(
+    QPointF currentAxesVal(m_maxAxesVal.x() * m_partOfAxesVal, m_maxAxesVal.y());
+    QPointF cellStep(
             static_cast<qreal>(m_grid->width()) / m_cellsCount.x(),
             static_cast<qreal>(m_grid->height()) / m_cellsCount.y()
             );
-    QPointF valStep = QPointF(
-            m_axesVal.x() / m_cellsCount.x(),
-            m_axesVal.y() / m_cellsCount.y()
+    QPointF valStep(
+            currentAxesVal.x() / m_cellsCount.x(),
+            currentAxesVal.y() / m_cellsCount.y()
             );
     auto fontMetrics = painter->fontMetrics();
 
-    for(qsizetype i = 0; i <= m_axesVal.x(); i++)
+    for(qsizetype i = 0; i <= currentAxesVal.x(); i++)
     {
         QString text = QString::number(valStep.x() * i, 'f', 1);
 
-        QPointF sizeText = QPointF(
+        QPointF sizeText(
                 static_cast<qreal>(fontMetrics.horizontalAdvance(text)),
                 static_cast<qreal>(fontMetrics.xHeight())
                 );
 
-        QPointF posText = QPointF(
+        qreal yPosText = m_margins.bottom() > sizeText.y() ? static_cast<qreal>(height() - 1) - (m_margins.bottom() - sizeText.y()) / 2.0 : height() - 1;
+        QPointF posText(
                 cellStep.x() * i + m_margins.left() - sizeText.x() / 2.0,
-                m_margins.bottom() > sizeText.y() ? static_cast<qreal>(height()) - (m_margins.bottom() - sizeText.y()) / 2.0 : height() - 1
+                yPosText
                 );
 
         painter->drawText(posText, text);
     }
-    for(qsizetype i = 0; i <= m_axesVal.y(); i++)
+    for(qsizetype i = 0; i <= currentAxesVal.y(); i++)
     {
         QString text = QString::number(valStep.y() * i, 'f', 1);
 
-        QPointF sizeText = QPointF(
+        QPointF sizeText(
                 fontMetrics.horizontalAdvance(text),
                 fontMetrics.xHeight()
                 );
 
-        QPointF posText = QPointF(
+        QPointF posText(
                 m_margins.left() > sizeText.x() ? (m_margins.left() - sizeText.x()) / 2.0 : sizeText.x() / 2.0,
                 static_cast<qreal>(height()) - (cellStep.y() * i + m_margins.bottom()) + sizeText.y() / 2.0
                 );
@@ -126,3 +131,21 @@ void Grapher::paintEvent(QPaintEvent* event)
 
     printAxes(&painter);
 }
+
+void Grapher::wheelEvent(QWheelEvent *event)
+{
+    int numSteps = event->angleDelta().y() / 120;
+
+    qreal chgPart = m_partOfAxesVal - numSteps * 0.02;
+    if(0 < chgPart && chgPart < 1.0)
+    {
+        m_partOfAxesVal = chgPart;
+    }
+    else
+    {
+        m_partOfAxesVal = chgPart > 0.0 ? 1.0 : 0.02;
+    }
+
+    emit chgedPartOfAxesVal(m_partOfAxesVal);
+}
+

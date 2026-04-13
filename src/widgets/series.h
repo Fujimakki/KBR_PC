@@ -5,6 +5,7 @@
 #include <QPointF>
 #include <QPen>
 #include <qnamespace.h>
+#include <qtmetamacros.h>
 
 class Series
     : public QWidget
@@ -14,7 +15,8 @@ class Series
 public:
     explicit Series(QWidget* parrent = nullptr) : QWidget(parrent)
     {
-        setPen(QPen(Qt::cyan));
+        setPen(QPen(Qt::yellow));
+        m_partOfAxesVal = 1.0;
     }
 
     virtual ~Series() = default;
@@ -40,6 +42,11 @@ signals:
 protected:
     QPointF m_axesVal;
     QPen m_pen;
+    qreal m_partOfAxesVal;
+
+public slots:
+    void updPartOfAxesVal(qreal partOfVal) { m_partOfAxesVal = partOfVal; };
+
 };
 
 #endif  // WIDGETS_SERIES_H

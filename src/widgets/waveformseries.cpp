@@ -2,6 +2,7 @@
 
 #include <QPen>
 #include <QPainter>
+#include <qtypes.h>
 
 void WaveformSeries::setValues(QList<float> &values)
 {
@@ -15,9 +16,10 @@ void WaveformSeries::setValues(QList<float> &values)
             static_cast<qreal>(width()) - 1.0,
             qMax(0.0, static_cast<qreal>(height()) * (1 - values[0] / m_axesVal.y()))
             );
-    for(qsizetype i = 0; i < values.size(); i++)
+    const qsizetype numPoints = static_cast<qsizetype>(values.size() * m_partOfAxesVal);
+    for(qsizetype i = 0; i < numPoints; i++)
     {
-        qreal xPos = 1.0 + (static_cast<qreal>(width()) - 2.0) * (1.0 - static_cast<qreal>(i) / values.size());
+        qreal xPos = 1.0 + (static_cast<qreal>(width()) - 2.0) * (1.0 - static_cast<qreal>(i) / numPoints);
         qreal yPos = qMax(0.0, static_cast<qreal>(height()) * (1 - values[i] / m_axesVal.y()));
 
         m_series.lineTo(xPos, yPos);

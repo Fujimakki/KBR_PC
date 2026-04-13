@@ -6,6 +6,8 @@
 #include <QWidget>
 #include <QStackedLayout>
 #include <QPointF>
+#include <qpoint.h>
+#include <qtypes.h>
 
 class Grapher : public QWidget
 {
@@ -19,11 +21,15 @@ public:
 
     void addSeries(Series *series);
 
+signals:
+    void chgedPartOfAxesVal(qreal partOfAxesVal);
+
 protected slots:
-    void updateAxes();
+    void updAxes();
 
 protected:
     void paintEvent(QPaintEvent *event) override;
+    void wheelEvent(QWheelEvent *event) override;
 
 private:
     void printAxes(QPainter *painter);
@@ -31,7 +37,8 @@ private:
     QList<Series*> m_series;
     GrapherGrid *m_grid = nullptr;
     QStackedLayout *m_layoutStack = nullptr;
-    QPointF m_axesVal;
+    QPointF m_maxAxesVal;
+    qreal m_partOfAxesVal;
     QPoint m_cellsCount;
     QMargins m_margins;
 };
