@@ -24,18 +24,18 @@ void RxPacket::findPacket(QByteArray &rxBuffer)
     switch(this->type)
     {
     case RxPacket::AWS:
-        packetSize = RX_AWS_PACKET_BYTES;
-        payloadSize = RX_AWS_PAYLOAD_BYTES;
+        packetSize = AWS_PACKET_BYTES;
+        payloadSize = AWS_PAYLOAD_BYTES;
         break;
 
     case RxPacket::RAW:
-        packetSize = RX_RAW_PACKET_BYTES;
-        payloadSize = RX_RAW_PAYLOAD_BYTES;
+        packetSize = RAW_PACKET_BYTES;
+        payloadSize = RAW_PAYLOAD_BYTES;
         break;
 
     case RxPacket::FFT:
-        packetSize = RX_FFT_PACKET_BYTES;
-        payloadSize = RX_FFT_PAYLOAD_BYTES;
+        packetSize = FFT_PACKET_BYTES;
+        payloadSize = FFT_PAYLOAD_BYTES;
         break;
 
     default:

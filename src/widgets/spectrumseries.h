@@ -13,7 +13,7 @@ public:
     SpectrumSeries(QWidget *parent = nullptr) : Series(parent) {}
     ~SpectrumSeries() = default;
 
-    void setValues(QList<qreal> &values) override;
+    void setValues(QList<float> &values) override;
 
 protected:
     void paintEvent(QPaintEvent *event) override;

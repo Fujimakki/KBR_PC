@@ -23,16 +23,16 @@ public:
     };
 
     static constexpr qsizetype PACKET_HEADER_BYTES = 2;
-    static constexpr qsizetype PACKET_CRC_BYTES = 4;   // = sizeof(uint32_t)
+    static constexpr qsizetype PACKET_CRC_BYTES = 4;
 
-    static constexpr qsizetype RX_AWS_PAYLOAD_BYTES = 2;
-    static constexpr qsizetype RX_AWS_PACKET_BYTES = 8; // = PACKET_HEADER_BYTES + RX_AWS_PAYLOAD_BYTES + PACKET_CRC_BYTES
+    static constexpr qsizetype AWS_PAYLOAD_BYTES = 2;
+    const qsizetype AWS_PACKET_BYTES = PACKET_HEADER_BYTES + AWS_PAYLOAD_BYTES + PACKET_CRC_BYTES;
 
-    static constexpr qsizetype RX_RAW_PAYLOAD_BYTES = 16384;  // = FFT_SIZE * 2 * sizeof(uint16_t) = 4096 * 2 * 2
-    static constexpr qsizetype RX_RAW_PACKET_BYTES = 16390;   // = PACKET_HEADER_BYTES + RX_RAW_PAYLOAD_BYTES + PACKET_CRC_BYTES
+    static constexpr qsizetype RAW_PAYLOAD_BYTES = 16384;
+    const qsizetype RAW_PACKET_BYTES = PACKET_HEADER_BYTES + RAW_PAYLOAD_BYTES + PACKET_CRC_BYTES;
 
-    static constexpr qsizetype RX_FFT_PAYLOAD_BYTES = 16384;  // = FFT_SIZE / 2 * 2 * sizeof(flaot32_t) = 4096 * 4
-    static constexpr qsizetype RX_FFT_PACKET_BYTES = 16390;   // = PACKET_HEADER_BYTES + RX_FFT_PAYLOAD_BYTES + PACKET_CRC_BYTES
+    const qsizetype FFT_PAYLOAD_BYTES = ((RAW_PAYLOAD_BYTES >> 2) + 2) << 2;
+    const qsizetype FFT_PACKET_BYTES = PACKET_HEADER_BYTES + FFT_PAYLOAD_BYTES + PACKET_CRC_BYTES;
 
     inline RxPacket()
     {
