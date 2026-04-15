@@ -146,7 +146,7 @@
       <item>
        <widget class="QComboBox" name="portCmbBox">
         <property name="sizePolicy">
-         <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+         <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
           <horstretch>0</horstretch>
           <verstretch>0</verstretch>
          </sizepolicy>
@@ -179,47 +179,6 @@
          </size>
         </property>
        </spacer>
-      </item>
-      <item>
-       <widget class="QSpinBox" name="awsSpinBox">
-        <property name="minimumSize">
-         <size>
-          <width>200</width>
-          <height>0</height>
-         </size>
-        </property>
-        <property name="alignment">
-         <set>Qt::AlignmentFlag::AlignCenter</set>
-        </property>
-        <property name="suffix">
-         <string> sample (-es)</string>
-        </property>
-        <property name="prefix">
-         <string/>
-        </property>
-        <property name="minimum">
-         <number>1</number>
-        </property>
-        <property name="maximum">
-         <number>65535</number>
-        </property>
-        <property name="singleStep">
-         <number>1</number>
-        </property>
-        <property name="value">
-         <number>1</number>
-        </property>
-        <property name="displayIntegerBase">
-         <number>10</number>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QPushButton" name="awsBtn">
-        <property name="text">
-         <string>Set AWS</string>
-        </property>
-       </widget>
       </item>
      </layout>
     </item>

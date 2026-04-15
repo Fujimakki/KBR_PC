@@ -41,21 +41,11 @@ MainWindow::MainWindow(QWidget *parent)
             emit connectToPort(this->ui->portCmbBox->currentText());
         }
     );
-    connect(this, &MainWindow::sendMessage, sWorker, &SerialWorker::sendMessage);
-    connect(
-        ui->awsBtn,
-        &QPushButton::pressed,
-        [this]() {
-            quint16 awsData = ui->awsSpinBox->value();
-            emit sendMessage(TxPacket::AWS, awsData);
-        }
-    );
     connect(ui->disconBtn, &QPushButton::clicked, sWorker, &SerialWorker::doDisconnect);
 
     connect(sWorker, &SerialWorker::crcError, this, &MainWindow::onCrcError);
     connect(sWorker, &SerialWorker::portError, this, &MainWindow::onPortError);
 
-    connect(sWorker, &SerialWorker::awsDataParsed, this, &MainWindow::awsDataReceived);
     connect(sWorker, &SerialWorker::rawDataParsed, this, &MainWindow::rawDataReceived);
     connect(sWorker, &SerialWorker::fftDataParsed, this, &MainWindow::fftDataReceived);
 
@@ -86,12 +76,6 @@ MainWindow::~MainWindow() {
         sThread->quit();
         sThread->wait(1000);
     }
-}
-
-void MainWindow::awsDataReceived(const QByteArray &barr_payload) {
-
-    QMessageBox::information(this, "AWS", "Averaging window size is successfully set");
-    qDebug() << "Averaging window size is successfully set.";
 }
 
 void MainWindow::fftDataReceived(const QByteArray &payload) {

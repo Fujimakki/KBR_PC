@@ -1,18 +1,22 @@
 #include "serialworker.h"
 
-#include "rxpacket.h"
-#include "txpacket.h"
-
 #include <QDebug>
 #include <QThread>
-#include <qlogging.h>
-#include <qstringview.h>
 #include <QMessageBox>
 
 SerialWorker::SerialWorker(QObject *parent)
     : QObject{parent}
 {
 
+}
+
+SerialWorker::~SerialWorker()
+{
+    if(port)
+    {
+        port->close();
+        port->deleteLater();
+    }
 }
 
 void SerialWorker::doConnect(const QString &portName)
@@ -96,9 +100,6 @@ void SerialWorker::processBuffer()
             case RxPacket::FFT:
                 type = "FFT";
                 break;
-            case RxPacket::AWS:
-                type = "AWS";
-                break;
             }
             emit crcError(type);
             continue;
@@ -107,10 +108,6 @@ void SerialWorker::processBuffer()
         QByteArray payload = parser.getPayload();
         switch(parser.getType())
         {
-            case RxPacket::AWS:
-                emit awsDataParsed(payload);
-                break;
-
             case RxPacket::RAW:
                 emit rawDataParsed(payload);
                 break;
@@ -123,29 +120,6 @@ void SerialWorker::processBuffer()
                 emit typeError(parser.getType());
                 break;
         }
-    }
-}
-
-void SerialWorker::sendMessage(const TxPacket::PacketTypes &type, const quint16 &data)
-{
-    if(!port)
-    {
-        return;
-    }
-
-    TxPacket creator;
-    QByteArray message = creator(type, data);
-
-    port->write(message);
-
-    if(!port->waitForBytesWritten(3000))
-    {
-        emit writeError();
-        qDebug() << "The message" << message.toHex(' ') << " wasn't sent.";
-    }
-    else
-    {
-        qDebug() << "The message " << message.toHex(' ') << " was sent.";
     }
 }
 

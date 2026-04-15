@@ -1,13 +1,10 @@
 #ifndef SERIALWORKER_H
 #define SERIALWORKER_H
 
-#include <QObject>
 #include <QSerialPort>
 #include <QSerialPortInfo>
-#include <qstringview.h>
 
 #include "rxpacket.h"
-#include "txpacket.h"
 
 class SerialWorker : public QObject
 {
@@ -17,6 +14,7 @@ class SerialWorker : public QObject
 
 public:
     explicit SerialWorker(QObject *parent = nullptr);
+    ~SerialWorker();
 
 signals:
     void crcError(QString typePacket);
@@ -33,7 +31,6 @@ signals:
 public slots:
     void doConnect(const QString &portName);
     void doDisconnect();
-    void sendMessage(const TxPacket::PacketTypes &type, const quint16 &data);
 
 private slots:
     void onReadyRead();
@@ -46,8 +43,6 @@ private:
     static constexpr quint32 PORT_BAUD_RATE = 2250000;    // The value is set on NUCLEO-F446RE
     static constexpr quint64 PORT_BUF_SIZE = 0;
 
-
-    const QByteArray AWS_PACKET_HEADER = QByteArray::fromHex("AA31");
 
     const QByteArray RAW_PACKET_HEADER = QByteArray::fromHex("AA51");
     const QByteArray FFT_PACKET_HEADER = QByteArray::fromHex("AA52");

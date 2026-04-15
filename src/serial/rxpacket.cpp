@@ -1,7 +1,4 @@
 #include "rxpacket.h"
-#include <cstdint>
-#include <qtypes.h>
-#include <utility>
 #include <zlib.h>
 
 void RxPacket::findPacket(QByteArray &rxBuffer)
@@ -23,11 +20,6 @@ void RxPacket::findPacket(QByteArray &rxBuffer)
     quint16 payloadSize;
     switch(this->type)
     {
-    case RxPacket::AWS:
-        packetSize = AWS_PACKET_BYTES;
-        payloadSize = AWS_PAYLOAD_BYTES;
-        break;
-
     case RxPacket::RAW:
         packetSize = RAW_PACKET_BYTES;
         payloadSize = RAW_PAYLOAD_BYTES;
@@ -84,7 +76,7 @@ QPair<qsizetype, RxPacket::PacketTypes> RxPacket::findHeader(const QByteArray &r
 
     qsizetype headerIndex;
 
-    for(const auto &header : {PACKET_HEADER_AWS, PACKET_HEADER_RAW, PACKET_HEADER_FFT})
+    for(const auto &header : {PACKET_HEADER_RAW, PACKET_HEADER_FFT})
     {
         headerIndex = rxBuffer.indexOf(header);
 
@@ -92,11 +84,7 @@ QPair<qsizetype, RxPacket::PacketTypes> RxPacket::findHeader(const QByteArray &r
         {
             res.first = headerIndex;
  
-            if(header == PACKET_HEADER_AWS)
-            {
-                res.second = PacketTypes::AWS;
-            }
-            else if(header == PACKET_HEADER_RAW)
+            if(header == PACKET_HEADER_RAW)
             {
                 res.second = PacketTypes::RAW;
             }

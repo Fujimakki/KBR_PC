@@ -1,11 +1,7 @@
 #ifndef RX_PACKET_H
 #define RX_PACKET_H
 
-#include <cstdint>
-#include <qcontainerfwd.h>
-#include <qtypes.h>
 #include <QByteArray>
-#include <QString>
 #include <QPair>
 
 
@@ -15,8 +11,6 @@ public:
     enum PacketTypes : quint8
     {
         NONE = 0x00,
-
-        AWS = 0x31,
 
         RAW = 0x51,
         FFT = 0x52
@@ -54,7 +48,6 @@ public:
 private:
     PacketTypes type;
 
-    const QByteArray PACKET_HEADER_AWS = QByteArray::fromHex("AA") + QByteArray(1, PacketTypes::AWS);
     const QByteArray PACKET_HEADER_RAW = QByteArray::fromHex("AA") + QByteArray(1, PacketTypes::RAW);
     const QByteArray PACKET_HEADER_FFT = QByteArray::fromHex("AA") + QByteArray(1, PacketTypes::FFT);
 

@@ -22,8 +22,6 @@ class MainWindow : public QMainWindow
 {
     Q_OBJECT
 
-    friend class TestMainWindow;
-
 public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
@@ -31,10 +29,8 @@ public:
 signals:
     void connectToPort(const QString &portName);
     void portsChanged(const QList<QSerialPortInfo> &ports);
-    void sendMessage(const TxPacket::PacketTypes &type, const quint16 &data);
 
 private slots:
-    void awsDataReceived(const QByteArray &barr_payload);
     void fftDataReceived(const QByteArray &barr_payload);
     void rawDataReceived(const QByteArray &barr_payload);
     void onCrcError(const QString &type);
@@ -45,7 +41,6 @@ private slots:
 private:
     enum PayloadType
     {
-        AWS,
         RAW,
         FFT
     };
